@@ -8,11 +8,11 @@
 
 ## Execution Strategy
 
-AssetFlow is built through **4 sequential plans**, each producing a deployable milestone. Plans MUST be executed in order — each depends on the previous.
+AssetFlow is built through **5 sequential plans**, each producing a deployable milestone. Plans MUST be executed in order — each depends on the previous.
 
 ```
-Plan 1: Project Foundation ──→ Plan 2: Landing Page ──→ Plan 3: Core Application ──→ Plan 4: Polish & Deploy
-       (scaffold)                  (marketing)              (product)                   (ship)
+Plan 1: Project Foundation ──→ Plan 2: Landing Page ──→ Plan 3: Core Application ──→ Plan 4: Polish & Deploy ──→ Plan 5: Premium SaaS
+       (scaffold)                  (marketing)              (product)                   (ship MVP)              (enterprise scale)
 ```
 
 ---
@@ -103,7 +103,29 @@ Plan 1: Project Foundation ──→ Plan 2: Landing Page ──→ Plan 3: Core
 - Production deployment
 - Final design system compliance check
 
-**Why Last:** Polish requires the complete application to exist. This is the final pass before shipping.
+**Why Fourth:** Polish requires the complete application to exist. This is the final pass before shipping the MVP.
+
+---
+
+### Plan 5: Premium SaaS Transformation
+**File:** `.agents/plans/05-premium-saas-transformation.md`  
+**Complexity:** High  
+**Estimate:** 20-25 sessions (10-12 weeks)  
+**Produces:** Enterprise-grade SaaS with authentication, database, payments, and premium features
+
+**Key Deliverables:**
+- Sacred geometry design system enhancements
+- Supabase authentication (email, OAuth, magic link)
+- Database schema with RLS policies
+- Stripe subscription integration
+- Premium dashboard (projects, templates, billing)
+- Feature gating (free vs pro tiers)
+- Advanced batch operations
+- AI-powered features (descriptor suggestions)
+- Marketing and growth features
+- Production monitoring and testing
+
+**Why Fifth:** This transforms the portfolio MVP into a revenue-generating SaaS product. Requires MVP to be deployed and validated before investing in premium infrastructure.
 
 ---
 
