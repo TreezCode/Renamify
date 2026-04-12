@@ -19,9 +19,11 @@ const FILE_SIGNATURES = {
   ],
 } as const
 
-const MAX_FILE_SIZE = 50 * 1024 * 1024
-const MAX_TOTAL_SIZE = 500 * 1024 * 1024
-const MIN_FILE_SIZE = 100
+// File size limits - increased for professional RAW file support
+// RAW file sizes: Entry-level (20-30MB), Professional (30-60MB), High-end (60-100MB), Medium format (100-150MB+)
+export const MAX_FILE_SIZE = 150 * 1024 * 1024      // 150MB - supports high-end and medium format cameras
+export const MAX_TOTAL_SIZE = 1024 * 1024 * 1024    // 1GB - allows ~6-7 professional RAW files per session
+export const MIN_FILE_SIZE = 100
 
 export interface FileValidationResult {
   isValid: boolean

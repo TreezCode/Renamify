@@ -1,5 +1,16 @@
 @import "tailwindcss";
 
+/* Ensure proper viewport sizing */
+html {
+  max-width: 100%;
+}
+
+body {
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
 /* Build With Treez Design System - Reduced Motion Support */
 @media (prefers-reduced-motion: reduce) {
   *,

@@ -43,31 +43,31 @@ export function Footer() {
   }
 
   return (
-    <footer className="bg-deep-space border-t border-white/10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
+    <footer className="bg-deep-space border-t border-white/10 w-full">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-12 w-full">
           {/* Logo Section - More Prominent */}
           <div className="flex flex-col items-center md:items-start">
-            <div className="mb-4">
+            <div className="mb-6">
               <Image
                 src="/brand/logo-full.webp"
                 alt="AssetFlow"
-                width={200}
-                height={50}
-                style={{ width: 'auto', height: '50px' }}
+                width={320}
+                height={80}
+                style={{ width: 'auto', height: '80px', maxWidth: '100%' }}
                 className="object-contain md:hidden"
               />
               <Image
                 src="/brand/logo-full.webp"
                 alt="AssetFlow"
-                width={224}
-                height={56}
-                style={{ width: 'auto', height: '56px' }}
+                width={360}
+                height={90}
+                style={{ width: 'auto', height: '90px', maxWidth: '100%' }}
                 className="object-contain hidden md:block"
               />
             </div>
-            <p className="text-sm text-gray-400 text-center md:text-left max-w-xs">
-              Professional Image Renaming for E-commerce & Photography
+            <p className="text-xs text-gray-500 text-center md:text-left px-2 md:px-0">
+              Where Sacred Geometry Meets Modern Technology
             </p>
             <p className="mt-6 text-xs text-gray-500 text-center md:text-left">
               Built by{' '}
