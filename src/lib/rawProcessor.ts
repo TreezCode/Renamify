@@ -15,18 +15,30 @@ export function isRawFile(filename: string): boolean {
  */
 export async function extractRawPreview(file: File): Promise<string | null> {
   try {
-    // Use exifr.thumbnailUrl() to extract embedded JPEG preview
-    // This returns a blob URL directly
-    const thumbnailUrl = await exifr.thumbnailUrl(file)
+    // Try method 1: Use exifr.thumbnail() to extract the thumbnail directly
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const thumbnailBuffer = await (exifr as any).thumbnail(file)
     
-    if (!thumbnailUrl) {
-      console.warn('No thumbnail found in RAW file')
-      return null
+    if (thumbnailBuffer && thumbnailBuffer instanceof Uint8Array) {
+      // Convert buffer to Blob then to URL
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore - Uint8Array.buffer works at runtime despite type mismatch
+      const blob = new Blob([thumbnailBuffer.buffer], { type: 'image/jpeg' })
+      const blobUrl = URL.createObjectURL(blob)
+      return blobUrl
     }
-
-    return thumbnailUrl
+    
+    // Method 2: Try thumbnailUrl() as fallback
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const thumbnailUrl = await (exifr as any).thumbnailUrl(file)
+    if (thumbnailUrl) {
+      return thumbnailUrl
+    }
+    
+    console.warn('No thumbnail found in RAW file:', file.name)
+    return null
   } catch (error) {
-    console.warn('Failed to extract RAW preview:', error)
+    console.warn('Failed to extract RAW preview from', file.name, ':', error)
     // Return null to indicate preview extraction failed - will fall back to placeholder
     return null
   }
