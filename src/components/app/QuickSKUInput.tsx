@@ -44,7 +44,8 @@ export function QuickSKUInput() {
     }
   }
 
-  if (images.length === 0) return null
+  // Hide this panel when images are selected - SelectionActionBar handles it
+  if (images.length === 0 || hasSelection) return null
 
   return (
     <motion.div
