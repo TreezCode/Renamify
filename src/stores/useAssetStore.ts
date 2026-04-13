@@ -2,47 +2,18 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { AssetStore, AssetImage, ResolvedFilename, ToastType } from '@/types'
 import { generateFilename, isFilenameComplete, getFileExtension } from '@/lib/filename'
-import { MAX_FREE_IMAGES, THUMBNAIL_MAX_SIZE, ITERATION_PRESETS } from '@/lib/constants'
+import { MAX_FREE_IMAGES, ITERATION_PRESETS } from '@/lib/constants'
 import { validateImageFile, getTotalFileSize } from '@/lib/file-validation'
 import { cleanupThumbnails } from '@/lib/memory-monitor'
 
+/**
+ * Create preview URL for image display
+ * Simply uses the original file - CSS object-cover handles sizing perfectly
+ */
 function generateThumbnail(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const img = new Image()
-      img.onload = () => {
-        const canvas = document.createElement('canvas')
-        const ctx = canvas.getContext('2d')
-        if (!ctx) {
-          resolve(e.target?.result as string)
-          return
-        }
-
-        let { width, height } = img
-        if (width > height) {
-          if (width > THUMBNAIL_MAX_SIZE) {
-            height = (height * THUMBNAIL_MAX_SIZE) / width
-            width = THUMBNAIL_MAX_SIZE
-          }
-        } else {
-          if (height > THUMBNAIL_MAX_SIZE) {
-            width = (width * THUMBNAIL_MAX_SIZE) / height
-            height = THUMBNAIL_MAX_SIZE
-          }
-        }
-
-        canvas.width = width
-        canvas.height = height
-        ctx.drawImage(img, 0, 0, width, height)
-        resolve(canvas.toDataURL('image/jpeg', 0.8))
-      }
-      img.onerror = () => reject(new Error('Failed to load image'))
-      img.src = e.target?.result as string
-    }
-    reader.onerror = () => reject(new Error('Failed to read file'))
-    reader.readAsDataURL(file)
-  })
+  // Use the original file directly - no compression, no quality loss
+  // CSS object-cover handles all sizing and aspect ratios
+  return Promise.resolve(URL.createObjectURL(file))
 }
 
 export const useAssetStore = create<AssetStore>()(
