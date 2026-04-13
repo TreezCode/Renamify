@@ -1,11 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 
 const quickLinks = [
-  { name: 'Home', href: '#hero' },
   { name: 'How It Works', href: '#how-it-works' },
   { name: 'Features', href: '#features' },
   { name: 'Pricing', href: '#pricing' },
@@ -50,22 +48,16 @@ export function Footer() {
           <div className="flex flex-col items-center md:items-start">
             <div className="mb-8">
               {/* Mobile: 120px tall - prominent on mobile */}
-              <Image
+              <img
                 src="/brand/logo-full.webp"
                 alt="AssetFlow"
-                width={480}
-                height={120}
-                style={{ width: 'auto', height: '120px', maxWidth: '100%' }}
-                className="object-contain md:hidden"
+                className="h-[120px] w-auto object-contain md:hidden"
               />
               {/* Desktop: 140px tall - matches reference design */}
-              <Image
+              <img
                 src="/brand/logo-full.webp"
                 alt="AssetFlow"
-                width={560}
-                height={140}
-                style={{ width: 'auto', height: '140px', maxWidth: '100%' }}
-                className="object-contain hidden md:block"
+                className="h-[140px] w-auto object-contain hidden md:block"
               />
             </div>
             <p className="text-sm text-gray-400 text-center md:text-left px-2 md:px-0 max-w-xs">
