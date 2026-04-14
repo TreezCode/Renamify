@@ -26,12 +26,24 @@ Premium authentication is now fully implemented with:
 
 ---
 
-## 🔑 Step 2: Get Your Credentials
+## 🔑 Step 2: Get Your API Keys
+
+**Important:** Supabase has upgraded to a new, more secure API key system using **publishable keys**.
 
 1. In your Supabase project dashboard, go to **Settings** → **API**
-2. Copy these values:
+2. Click the **API Keys** tab
+3. If you don't have a publishable key yet, click **Create new API Keys**
+4. Copy these values:
    - **Project URL** (e.g., `https://abcdefgh.supabase.co`)
-   - **anon/public key** (starts with `eyJ...`)
+   - **Publishable key** (format: `sb_publishable_<random>_<checksum>`)
+
+**Why Publishable Keys?**
+- More secure than legacy JWT-based anon keys
+- Easier to rotate without invalidating user sessions
+- Better separation of client/server concerns
+- Modern architecture aligned with industry standards
+
+**Note:** Legacy `anon` keys still work during the transition period, but new projects should use publishable keys.
 
 ---
 
@@ -42,11 +54,15 @@ Create a `.env.local` file in your project root:
 ```bash
 # Supabase Configuration
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxx
 
 # Site URL (for redirects)
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
+
+**Key Format:**
+- Publishable key: `sb_publishable_<22-random-chars>_<8-char-checksum>`
+- Example: `sb_publishable_AbCdEfGhIjKlMnOpQrSt_XyZ12345`
 
 **For Vercel Deployment:**
 1. Go to your Vercel project → **Settings** → **Environment Variables**
