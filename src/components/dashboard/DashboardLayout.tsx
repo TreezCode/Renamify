@@ -43,12 +43,15 @@ export function DashboardLayout({ children, user }: DashboardLayoutProps) {
         <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-white/3 backdrop-blur-xl border-r border-white/10">
           <div className="flex flex-col flex-1 p-6">
             {/* Logo/Brand */}
-            <Link href="/" className="mb-8 block">
+            <Link href="/" className="mb-8 flex items-center gap-3 group">
               <img
                 src="/brand/logo-full.webp"
                 alt="Renamerly"
-                className="h-10 w-auto"
+                className="h-12 w-auto"
               />
+              <span className="text-xl font-bold font-display bg-linear-to-r from-treez-purple to-treez-cyan bg-clip-text text-transparent group-hover:opacity-80 transition-opacity">
+                Renamerly
+              </span>
             </Link>
 
             {/* Navigation */}
@@ -97,19 +100,21 @@ export function DashboardLayout({ children, user }: DashboardLayoutProps) {
 
         {/* Main Content */}
         <div className="flex-1 lg:pl-64">
-          {/* Mobile Header */}
+          {/* Mobile Header - Matches main Header exactly */}
           <header className="lg:hidden sticky top-0 z-40 bg-deep-space/95 backdrop-blur-xl border-b border-white/10">
-            <div className="flex items-center justify-between px-4 py-3">
-              <Link href="/" className="flex items-center">
+            <div className="flex items-center justify-between h-16 px-4 sm:px-6">
+              <Link href="/" className="flex items-center gap-2 cursor-pointer">
                 <img
                   src="/brand/logo-full.webp"
                   alt="Renamerly"
-                  className="h-12 w-auto"
+                  height="48"
+                  className="h-[48px] w-auto"
                 />
               </Link>
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 className="p-2 rounded-lg border border-white/10 hover:border-treez-purple transition-colors"
+                aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
               >
                 {isMobileMenuOpen ? (
                   <X className="w-5 h-5 text-white" />
