@@ -29,20 +29,13 @@ export function SessionPersistProvider() {
     if (hasRestoredRef.current) return
     hasRestoredRef.current = true
 
-    // Skip if reset() was called during this navigation
-    if (sessionStorage.getItem('renamerly-skip-restore') === '1') {
-      sessionStorage.removeItem('renamerly-skip-restore')
-      return
-    }
-
     // Skip if store already has images (project was pre-loaded before navigation)
-    const currentImages = useAssetStore.getState().images
-    if (currentImages.length > 0) return
+    if (useAssetStore.getState().images.length > 0) return
 
+    // loadSession() internally rejects sessions saved before the last reset()
+    // via a localStorage timestamp — no sessionStorage flag needed
     loadSession().then((saved) => {
       if (!saved || saved.images.length === 0) return
-
-      // Double-check store hasn't been populated in the meantime
       if (useAssetStore.getState().images.length > 0) return
 
       restoreSession(saved.images, saved.currentProject)

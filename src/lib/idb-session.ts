@@ -11,6 +11,13 @@ const DB_NAME = 'renamerly-session'
 const DB_VERSION = 1
 const STORE_META = 'meta'
 const STORE_FILES = 'files'
+const LS_CLEARED_AT = 'renamerly-session-cleared-at'
+
+/** Called synchronously inside reset() — guarantees any subsequent loadSession() rejects stale IDB data */
+export function markSessionCleared(): void {
+  if (typeof window === 'undefined') return
+  localStorage.setItem(LS_CLEARED_AT, Date.now().toString())
+}
 
 interface SessionMeta {
   savedAt: number
@@ -117,6 +124,10 @@ export async function loadSession(): Promise<{
     db.close()
 
     if (!meta || !fileMap || meta.images.length === 0) return null
+
+    // Reject sessions that were saved before the last explicit reset()
+    const clearedAt = parseInt(localStorage.getItem(LS_CLEARED_AT) ?? '0', 10)
+    if (meta.savedAt <= clearedAt) return null
 
     const { extractRawPreview, generateRawPlaceholder } =
       await import('@/lib/rawProcessor')

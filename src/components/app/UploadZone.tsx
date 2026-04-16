@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Upload, Zap } from 'lucide-react'
+import { Upload, Zap, FolderOpen, Sparkles } from 'lucide-react'
 import { useDropzone } from '@/hooks/useDropzone'
 import { useAssetStore } from '@/stores/useAssetStore'
 import { useSubscription } from '@/hooks/useSubscription'
@@ -11,7 +11,11 @@ import { UpgradeModal } from '@/components/ui/UpgradeModal'
 export function UploadZone() {
   const images = useAssetStore((state) => state.images)
   const addImages = useAssetStore((state) => state.addImages)
+  const currentProject = useAssetStore((state) => state.currentProject)
+  const pendingProjectMeta = useAssetStore((state) => state.pendingProjectMeta)
   const { limits, isPro, loading } = useSubscription()
+
+  const isPendingRestore = pendingProjectMeta !== null && images.length === 0
 
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 
@@ -111,6 +115,25 @@ export function UploadZone() {
                 Upgrade
               </button>
             )}
+          </div>
+        ) : isPendingRestore ? (
+          <div className={`flex flex-col items-center justify-center text-center transition-opacity duration-200 ${isDragOver ? 'pointer-events-none opacity-50' : ''}`}>
+            <div className="w-16 h-16 mb-4 rounded-full bg-linear-to-br from-treez-purple/20 to-treez-cyan/20 border border-treez-purple/20 flex items-center justify-center">
+              <FolderOpen className="w-8 h-8 text-treez-purple" />
+            </div>
+            <h3 className="text-xl font-semibold text-white mb-1">
+              Restore &ldquo;{currentProject?.name}&rdquo;
+            </h3>
+            <div className="flex items-center gap-1.5 mb-3">
+              <Sparkles className="w-3.5 h-3.5 text-treez-cyan" />
+              <p className="text-sm text-treez-cyan font-medium">
+                {pendingProjectMeta.length} file{pendingProjectMeta.length !== 1 ? 's' : ''} — SKUs &amp; descriptors will be auto-applied
+              </p>
+            </div>
+            <p className="text-gray-400 text-sm mb-1">Drop your original files or click to browse</p>
+            <p className="text-xs text-gray-600">
+              Files are matched by filename — your naming work is saved
+            </p>
           </div>
         ) : (
           <div className={`flex flex-col items-center justify-center text-center transition-opacity duration-200 ${isDragOver ? 'pointer-events-none opacity-50' : ''}`}>

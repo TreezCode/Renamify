@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { AssetStore, AssetImage, ResolvedFilename, ToastType, CurrentProject, ProjectImageMeta } from '@/types'
-import { clearSession } from '@/lib/idb-session'
+import { clearSession, markSessionCleared } from '@/lib/idb-session'
 import { generateFilename, isFilenameComplete, getFileExtension } from '@/lib/filename'
 import { MAX_FREE_IMAGES, ITERATION_PRESETS } from '@/lib/constants'
 import { validateImageFile, getTotalFileSize } from '@/lib/file-validation'
@@ -222,10 +222,8 @@ export const useAssetStore = create<AssetStore>()(
   reset: () => {
     const { images } = get()
     cleanupThumbnails(images)
-    clearSession()
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('renamerly-skip-restore', '1')
-    }
+    markSessionCleared()  // synchronous — sets localStorage timestamp before any async work
+    clearSession()        // async — actually deletes IDB entries (belt-and-suspenders)
     set({ images: [], selectedImageIds: [], currentProject: null, pendingProjectMeta: null })
   },
 
