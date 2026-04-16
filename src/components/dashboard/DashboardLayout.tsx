@@ -99,12 +99,12 @@ export function DashboardLayout({ children, user }: DashboardLayoutProps) {
         <div className="flex-1 lg:pl-64">
           {/* Mobile Header */}
           <header className="lg:hidden sticky top-0 z-40 bg-deep-space/95 backdrop-blur-xl border-b border-white/10">
-            <div className="flex items-center justify-between px-4 py-4">
-              <Link href="/">
+            <div className="flex items-center justify-between px-4 py-3">
+              <Link href="/" className="flex items-center">
                 <img
                   src="/brand/logo-full.webp"
                   alt="Renamerly"
-                  className="h-8 w-auto"
+                  className="h-12 w-auto"
                 />
               </Link>
               <button

@@ -19,11 +19,13 @@ export default async function DashboardPage() {
     .single()
 
   return (
-    <div className="py-8 px-4 sm:px-6 lg:px-8">
-      <DashboardOverview
-        userId={user.id}
-        userName={profile?.full_name || user.email?.split('@')[0]}
-      />
+    <div className="w-full py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        <DashboardOverview
+          userId={user.id}
+          userName={profile?.full_name || user.email?.split('@')[0]}
+        />
+      </div>
     </div>
   )
 }
