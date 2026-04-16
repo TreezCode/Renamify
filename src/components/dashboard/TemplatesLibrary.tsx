@@ -13,9 +13,12 @@ import {
   MoreVertical,
   X,
   ChevronUp,
+  Zap,
 } from 'lucide-react'
 import { useTemplates, useDeleteTemplate, useCreateTemplate } from '@/hooks/useTemplates'
+import { useSubscription } from '@/hooks/useSubscription'
 import { Button } from '@/components/ui/Button'
+import { UpgradeModal } from '@/components/ui/UpgradeModal'
 import type { Tables } from '@/lib/supabase/database.types'
 
 type Template = Tables<'templates'>
@@ -404,10 +407,24 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
 export function TemplatesLibrary({ userId }: TemplatesLibraryProps) {
   const { templates, loading, refetch } = useTemplates(userId)
   const { deleteTemplate, deleting } = useDeleteTemplate()
+  const { isPro, limits } = useSubscription()
 
   const [search, setSearch] = useState('')
   const [templateToDelete, setTemplateToDelete] = useState<Template | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+
+  const canCreate = isPro || limits.canSaveTemplates
+  const isAtTemplateLimit = isPro && templates.length >= limits.maxSavedTemplates
+
+  function handleCreateClick() {
+    if (!canCreate) {
+      setShowUpgradeModal(true)
+      return
+    }
+    if (isAtTemplateLimit) return
+    setShowCreateModal(true)
+  }
 
   const filtered = templates.filter((t) =>
     t.name.toLowerCase().includes(search.toLowerCase())
@@ -436,9 +453,18 @@ export function TemplatesLibrary({ userId }: TemplatesLibraryProps) {
             {loading ? '...' : `${templates.length} saved template${templates.length !== 1 ? 's' : ''}`}
           </p>
         </div>
-        <Button variant="primary" size="md" onClick={() => setShowCreateModal(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          New Template
+        <Button
+          variant={canCreate ? 'primary' : 'secondary'}
+          size="md"
+          onClick={handleCreateClick}
+          disabled={isAtTemplateLimit}
+        >
+          {canCreate ? (
+            <Plus className="w-4 h-4 mr-2" />
+          ) : (
+            <Zap className="w-4 h-4 mr-2" />
+          )}
+          {canCreate ? 'New Template' : 'Upgrade for Templates'}
         </Button>
       </div>
 
@@ -464,7 +490,7 @@ export function TemplatesLibrary({ userId }: TemplatesLibraryProps) {
           ))}
         </div>
       ) : templates.length === 0 ? (
-        <EmptyState onCreate={() => setShowCreateModal(true)} />
+        <EmptyState onCreate={handleCreateClick} />
       ) : filtered.length === 0 ? (
         <motion.p
           initial={{ opacity: 0 }}
@@ -505,6 +531,12 @@ export function TemplatesLibrary({ userId }: TemplatesLibraryProps) {
           />
         )}
       </AnimatePresence>
+
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        feature="templates"
+      />
     </>
   )
 }

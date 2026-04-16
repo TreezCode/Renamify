@@ -54,7 +54,7 @@ export interface AssetStore {
   toasts: Toast[]
   confirmDialog: ConfirmDialogState | null
 
-  addImages: (files: File[]) => Promise<void>
+  addImages: (files: File[], limit?: number) => Promise<void>
   removeImage: (id: string) => void
   setImageSku: (imageId: string, sku: string) => void
   setBulkSku: (imageIds: string[], sku: string) => void

@@ -27,9 +27,9 @@ export const useAssetStore = create<AssetStore>()(
       toasts: [],
       confirmDialog: null,
 
-  addImages: async (files: File[]) => {
+  addImages: async (files: File[], limit: number = MAX_FREE_IMAGES) => {
     const { images } = get()
-    const remaining = MAX_FREE_IMAGES - images.length
+    const remaining = limit === Infinity ? files.length : Math.max(0, limit - images.length)
     const filesToAdd = files.slice(0, remaining)
 
     const currentTotalSize = getTotalFileSize(images.map((img) => img.file))
