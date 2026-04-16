@@ -211,7 +211,7 @@ function EmptyState() {
       <p className="text-gray-400 text-sm max-w-xs mb-8">
         Start by renaming your first batch of product images. Your saved sessions will appear here.
       </p>
-      <Link href="/app">
+      <Link href="/app?new=1">
         <Button variant="primary" size="md">
           <Plus className="w-4 h-4 mr-2" />
           Start a New Project
@@ -255,7 +255,7 @@ export function ProjectsLibrary({ userId }: ProjectsLibraryProps) {
             {loading ? '...' : `${projects.length} saved project${projects.length !== 1 ? 's' : ''}`}
           </p>
         </div>
-        <Link href="/app">
+        <Link href="/app?new=1">
           <Button variant="primary" size="md">
             <Plus className="w-4 h-4 mr-2" />
             New Project

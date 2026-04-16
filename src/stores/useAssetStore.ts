@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { AssetStore, AssetImage, ResolvedFilename, ToastType, CurrentProject } from '@/types'
+import type { AssetStore, AssetImage, ResolvedFilename, ToastType, CurrentProject, ProjectImageMeta } from '@/types'
 import { generateFilename, isFilenameComplete, getFileExtension } from '@/lib/filename'
 import { MAX_FREE_IMAGES, ITERATION_PRESETS } from '@/lib/constants'
 import { validateImageFile, getTotalFileSize } from '@/lib/file-validation'
@@ -27,6 +27,7 @@ export const useAssetStore = create<AssetStore>()(
       toasts: [],
       confirmDialog: null,
       currentProject: null,
+      pendingProjectMeta: null,
 
   addImages: async (files: File[], limit: number = MAX_FREE_IMAGES) => {
     const { images } = get()
@@ -79,6 +80,8 @@ export const useAssetStore = create<AssetStore>()(
     try {
       const { isRawFile, extractRawPreview, generateRawPlaceholder } = await import('@/lib/rawProcessor')
       
+      const { pendingProjectMeta } = get()
+
       const newImages: AssetImage[] = await Promise.all(
         validatedFiles.map(async (file) => {
           const isRaw = isRawFile(file.name)
@@ -93,6 +96,11 @@ export const useAssetStore = create<AssetStore>()(
           } else {
             thumbnail = await generateThumbnail(file)
           }
+
+          // Reconcile with saved project metadata by original filename
+          const savedMeta = pendingProjectMeta?.find(
+            (m) => m.originalName === file.name
+          ) ?? null
           
           return {
             id: crypto.randomUUID(),
@@ -101,9 +109,9 @@ export const useAssetStore = create<AssetStore>()(
             originalName: file.name,
             extension: getFileExtension(file.name),
             isRaw,
-            sku: null,
-            descriptor: null,
-            customDescriptor: null,
+            sku: savedMeta?.sku ?? null,
+            descriptor: savedMeta?.descriptor ?? null,
+            customDescriptor: savedMeta?.customDescriptor ?? null,
           }
         })
       )
@@ -213,15 +221,22 @@ export const useAssetStore = create<AssetStore>()(
   reset: () => {
     const { images } = get()
     cleanupThumbnails(images)
-    set({ images: [], selectedImageIds: [], currentProject: null })
+    set({ images: [], selectedImageIds: [], currentProject: null, pendingProjectMeta: null })
   },
 
   setCurrentProject: (project: CurrentProject | null) => {
     set({ currentProject: project })
   },
 
-  loadProject: (project: { id: string; name: string }) => {
-    set({ currentProject: { id: project.id, name: project.name } })
+  loadProject: (project: { id: string; name: string; imageMetadata?: ProjectImageMeta[] }) => {
+    set({
+      currentProject: { id: project.id, name: project.name },
+      pendingProjectMeta: project.imageMetadata ?? null,
+    })
+  },
+
+  clearPendingProjectMeta: () => {
+    set({ pendingProjectMeta: null })
   },
 
   renameCurrentSession: (name: string) => {

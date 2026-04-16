@@ -50,6 +50,16 @@ export interface CurrentProject {
   name: string
 }
 
+export interface ProjectImageMeta {
+  id: string
+  originalName: string
+  extension: string
+  isRaw: boolean
+  sku: string | null
+  descriptor: string | null
+  customDescriptor: string | null
+}
+
 export interface AssetStore {
   images: AssetImage[]
   hasSeenOnboarding: boolean
@@ -59,6 +69,7 @@ export interface AssetStore {
   toasts: Toast[]
   confirmDialog: ConfirmDialogState | null
   currentProject: CurrentProject | null
+  pendingProjectMeta: ProjectImageMeta[] | null
 
   addImages: (files: File[], limit?: number) => Promise<void>
   removeImage: (id: string) => void
@@ -69,8 +80,9 @@ export interface AssetStore {
   reset: () => void
 
   setCurrentProject: (project: CurrentProject | null) => void
-  loadProject: (project: { id: string; name: string }) => void
+  loadProject: (project: { id: string; name: string; imageMetadata?: ProjectImageMeta[] }) => void
   renameCurrentSession: (name: string) => void
+  clearPendingProjectMeta: () => void
 
   setOnboardingComplete: () => void
   toggleSkuCollapse: (sku: string) => void

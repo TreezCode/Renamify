@@ -20,16 +20,30 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 function ProjectLoader() {
   const searchParams = useSearchParams()
   const projectId = searchParams.get('project') ?? undefined
+  const isNew = searchParams.get('new') === '1'
+
   const loadProject = useAssetStore((state) => state.loadProject)
+  const reset = useAssetStore((state) => state.reset)
   const addToast = useAssetStore((state) => state.addToast)
   const { project } = useProject(projectId)
 
+  // ?new=1 — clear any existing session and start fresh
   useEffect(() => {
-    if (project) {
-      loadProject({ id: project.id, name: project.name })
-      addToast('success', `"${project.name}" loaded — re-upload your files to restore assignments`)
+    if (isNew) {
+      reset()
     }
-  }, [project, loadProject, addToast])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isNew])
+
+  // ?project=ID — reset then load the saved project with its metadata
+  useEffect(() => {
+    if (!project) return
+    const imageMetadata = Array.isArray(project.images) ? project.images as never : []
+    reset()
+    loadProject({ id: project.id, name: project.name, imageMetadata })
+    addToast('success', `"${project.name}" loaded — re-upload your files to restore SKU assignments`)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project?.id])
 
   return null
 }
