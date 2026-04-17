@@ -1,13 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { Download, CheckCircle2, Table2, FileDown, Lock } from 'lucide-react'
+import { Download, Table2, FileDown, Lock } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAssetStore } from '@/stores/useAssetStore'
 import { useSubscription } from '@/hooks/useSubscription'
 import { exportAsZip } from '@/lib/export'
-import { generateFilename, getFileExtension } from '@/lib/filename'
+import { generateFilename } from '@/lib/filename'
 import { buildCsvManifest, downloadCsv, getCsvFilename } from '@/lib/csv'
+import { getPresetById } from '@/lib/platformPresets'
 import { Button } from '@/components/ui/Button'
 import { UpgradeModal } from '@/components/ui/UpgradeModal'
 import { NamingPreviewTable } from '@/components/app/NamingPreviewTable'
@@ -17,7 +18,10 @@ export function ExportControls() {
   const isExportReady = useAssetStore((state) => state.isExportReady)
   const addToast = useAssetStore((state) => state.addToast)
 
+  const activePlatformPreset = useAssetStore((state) => state.activePlatformPreset)
   const { isPro } = useSubscription()
+
+  const preset = getPresetById(activePlatformPreset)
 
   const [isExporting, setIsExporting] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -28,8 +32,8 @@ export function ExportControls() {
   const totalImages = images.length
   const readyImages = images.filter((img) => {
     if (!img.sku) return false
-    const descriptor = img.descriptor === 'custom' ? (img.customDescriptor || '') : (img.descriptor || '')
-    return descriptor.length > 0
+    if (img.descriptor === 'custom') return !!(img.customDescriptor?.trim())
+    return !!(img.descriptor)
   })
   const completeImages = readyImages.length
   const allReady = isExportReady()
@@ -37,6 +41,16 @@ export function ExportControls() {
 
   const handleExport = async () => {
     if (!canExport || isExporting) return
+
+    const skuCounters = new Map<string, number>()
+    const positionMap = new Map<string, number>()
+    images.forEach((img) => {
+      if (img.sku) {
+        const count = (skuCounters.get(img.sku) ?? 0) + 1
+        skuCounters.set(img.sku, count)
+        positionMap.set(img.id, count)
+      }
+    })
 
     const filenameMap = new Map<string, number>()
     const duplicates: string[] = []
@@ -47,8 +61,7 @@ export function ExportControls() {
       const descriptor = image.descriptor === 'custom'
         ? (image.customDescriptor || '')
         : (image.descriptor || '')
-      const extension = getFileExtension(image.originalName)
-      const filename = generateFilename(sku, descriptor, extension)
+      const filename = generateFilename(sku, descriptor, image.originalName, preset, positionMap.get(image.id) ?? 1)
 
       const count = filenameMap.get(filename) || 0
       filenameMap.set(filename, count + 1)
@@ -72,6 +85,7 @@ export function ExportControls() {
     setShowSuccess(false)
 
     try {
+      const manifest = buildCsvManifest(readyImages, preset)
       await exportAsZip(
         readyImages,
         (image) => {
@@ -79,10 +93,10 @@ export function ExportControls() {
           const descriptor = image.descriptor === 'custom'
             ? (image.customDescriptor || '')
             : (image.descriptor || '')
-          const extension = getFileExtension(image.originalName)
-          return generateFilename(sku, descriptor, extension)
+          return generateFilename(sku, descriptor, image.originalName, preset, positionMap.get(image.id) ?? 1)
         },
-        (percent) => setProgress(Math.round(percent))
+        (percent) => setProgress(Math.round(percent)),
+        manifest
       )
 
       addToast('success', `${readyImages.length} image(s) exported successfully!`, 4000)
@@ -103,7 +117,7 @@ export function ExportControls() {
       setShowUpgrade(true)
       return
     }
-    const csv = buildCsvManifest(images)
+    const csv = buildCsvManifest(images, preset)
     downloadCsv(csv, getCsvFilename())
     addToast('success', 'Manifest CSV downloaded!', 4000)
   }
@@ -114,40 +128,43 @@ export function ExportControls() {
 
   return (
     <>
-    <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-6">
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div>
-          <p className="text-white font-medium mb-1">
-            {allReady ? (
-              <span className="flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-success" />
-                All images ready to export!
-              </span>
-            ) : (
-              `${completeImages} of ${totalImages} images ready`
-            )}
-          </p>
-          {!allReady && completeImages > 0 && (
-            <p className="text-sm text-gray-400">
-              You can export ready images now, or finish configuring all images
+    <div className={`bg-white/5 backdrop-blur-xl rounded-xl overflow-hidden transition-colors duration-500
+      ${allReady ? 'border border-success/20' : 'border border-white/10'}`}>
+
+      {/* Main row */}
+      <div className="flex flex-wrap items-center gap-3 px-4 py-3">
+
+        {/* Status indicator */}
+        <div className="flex items-center gap-2.5 flex-1 min-w-0">
+          <div className={`shrink-0 w-2 h-2 rounded-full ${
+            allReady ? 'bg-success' : completeImages > 0 ? 'bg-yellow-400' : 'bg-gray-600'
+          }`} />
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-white leading-tight">
+              {allReady
+                ? 'All images ready'
+                : `${completeImages} of ${totalImages} ready`}
             </p>
-          )}
-          {completeImages === 0 && (
-            <p className="text-sm text-gray-400">
-              Assign SKUs and descriptors to export images
+            <p className="text-[11px] text-gray-500 leading-tight mt-0.5">
+              {allReady
+                ? 'manifest.csv bundled in ZIP'
+                : completeImages > 0
+                  ? 'Partial export available'
+                  : 'Assign SKUs and descriptors to export'}
             </p>
-          )}
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap justify-end">
+        {/* Actions */}
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
           <Button
             variant="secondary"
             size="sm"
             onClick={() => setShowPreview(true)}
-            className="gap-1.5 whitespace-nowrap"
+            className="gap-1.5 text-xs px-3 py-1.5 h-8"
           >
-            <Table2 className="w-4 h-4" />
-            Preview
+            <Table2 className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Preview</span>
           </Button>
 
           {isPro ? (
@@ -155,55 +172,63 @@ export function ExportControls() {
               variant="secondary"
               size="sm"
               onClick={handleExportCsv}
-              className="gap-1.5 whitespace-nowrap"
+              className="gap-1.5 text-xs px-3 py-1.5 h-8"
             >
-              <FileDown className="w-4 h-4" />
-              Export CSV
+              <FileDown className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Export CSV</span>
             </Button>
           ) : (
             <Button
               variant="secondary"
               size="sm"
               onClick={() => setShowUpgrade(true)}
-              className="gap-1.5 whitespace-nowrap opacity-60"
+              className="gap-1.5 text-xs px-3 py-1.5 h-8 opacity-50"
             >
-              <Lock className="w-3.5 h-3.5" />
-              Export CSV
+              <Lock className="w-3 h-3" />
+              <span className="hidden sm:inline">Export CSV</span>
             </Button>
           )}
 
           <Button
             variant="primary"
-            size="lg"
+            size="sm"
             onClick={handleExport}
             disabled={!canExport || isExporting}
-            className="gap-2 whitespace-nowrap"
+            className="gap-1.5 text-xs px-4 py-1.5 h-8"
           >
             {isExporting ? (
-              <>Exporting... {progress}%</>
+              <>
+                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                {progress}%
+              </>
             ) : (
               <>
-                <Download className="w-5 h-5" />
-                {allReady ? 'Export All' : `Export Ready (${completeImages})`}
+                <Download className="w-3.5 h-3.5" />
+                {allReady
+                  ? <><span className="hidden sm:inline">Export All</span><span className="sm:hidden">Export</span></>
+                  : <>Export Ready ({completeImages})</>}
               </>
             )}
           </Button>
         </div>
       </div>
 
+      {/* Progress bar */}
       {isExporting && (
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${progress}%` }}
-          className="mt-4 h-2 bg-linear-to-r from-treez-purple to-treez-cyan rounded-full"
+          className="h-0.5 bg-linear-to-r from-treez-purple to-treez-cyan"
         />
       )}
 
+      {/* Success flash */}
       {showSuccess && (
         <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-4 p-3 bg-success/20 border border-success/30 rounded-lg text-success text-center font-medium"
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          className="px-4 py-2 bg-success/10 border-t border-success/20 text-success text-xs font-medium text-center"
         >
           Export complete! Check your downloads.
         </motion.div>

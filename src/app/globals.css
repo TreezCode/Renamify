@@ -134,6 +134,37 @@ body {
   background: var(--color-deep-space);
   color: #f8f8f8;
   scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(145, 94, 255, 0.2) transparent;
+}
+
+/* Build With Treez — Branded Scrollbar */
+.scrollbar-treez {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(145, 94, 255, 0.2) transparent;
+}
+
+.scrollbar-treez::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.scrollbar-treez::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-treez::-webkit-scrollbar-thumb {
+  background: rgba(145, 94, 255, 0.2);
+  border-radius: 9999px;
+  transition: background 0.2s;
+}
+
+.scrollbar-treez::-webkit-scrollbar-thumb:hover {
+  background: rgba(145, 94, 255, 0.55);
+}
+
+.scrollbar-treez::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 @media (prefers-reduced-motion: reduce) {

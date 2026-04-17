@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { AssetStore, AssetImage, ResolvedFilename, ToastType, CurrentProject, ProjectImageMeta } from '@/types'
+import { getPresetById, type PlatformPresetId } from '@/lib/platformPresets'
 import { clearSession, markSessionCleared } from '@/lib/idb-session'
 import { generateFilename, isFilenameComplete, getFileExtension } from '@/lib/filename'
 import { MAX_FREE_IMAGES, ITERATION_PRESETS } from '@/lib/constants'
@@ -23,12 +24,17 @@ export const useAssetStore = create<AssetStore>()(
       images: [],
       hasSeenOnboarding: false,
       collapsedSkus: [],
+      inboxCollapsed: false,
       uploadZoneCollapsed: false,
       selectedImageIds: [],
+      lastSelectedId: null,
       toasts: [],
       confirmDialog: null,
       currentProject: null,
       pendingProjectMeta: null,
+      activePlatformPreset: 'generic' as PlatformPresetId,
+      aiConsentGiven: false,
+      aiRequestCount: 0,
 
   addImages: async (files: File[], limit: number = MAX_FREE_IMAGES) => {
     const { images } = get()
@@ -113,6 +119,7 @@ export const useAssetStore = create<AssetStore>()(
             sku: savedMeta?.sku ?? null,
             descriptor: savedMeta?.descriptor ?? null,
             customDescriptor: savedMeta?.customDescriptor ?? null,
+            altText: savedMeta?.altText ?? null,
           }
         })
       )
@@ -242,6 +249,26 @@ export const useAssetStore = create<AssetStore>()(
     set({ pendingProjectMeta: null })
   },
 
+  setImageAltText: (imageId: string, altText: string) => {
+    set((state) => ({
+      images: state.images.map((img) =>
+        img.id === imageId ? { ...img, altText } : img
+      ),
+    }))
+  },
+
+  setAiConsentGiven: () => {
+    set({ aiConsentGiven: true })
+  },
+
+  incrementAiRequestCount: () => {
+    set((state) => ({ aiRequestCount: state.aiRequestCount + 1 }))
+  },
+
+  setActivePlatformPreset: (id: PlatformPresetId) => {
+    set({ activePlatformPreset: id })
+  },
+
   restoreSession: (images: AssetImage[], currentProject: CurrentProject | null) => {
     set({ images, currentProject, pendingProjectMeta: null, selectedImageIds: [] })
   },
@@ -253,14 +280,25 @@ export const useAssetStore = create<AssetStore>()(
   },
 
   getResolvedFilenames: (): ResolvedFilename[] => {
-    const { images } = get()
+    const { images, activePlatformPreset } = get()
+    const preset = getPresetById(activePlatformPreset)
+    const skuCounters = new Map<string, number>()
+    const positionMap = new Map<string, number>()
+    images.forEach((img) => {
+      if (img.sku) {
+        const count = (skuCounters.get(img.sku) ?? 0) + 1
+        skuCounters.set(img.sku, count)
+        positionMap.set(img.id, count)
+      }
+    })
     return images.map((img) => {
       const sku = img.sku ?? ''
       const descriptor = img.descriptor === 'custom'
         ? (img.customDescriptor ?? '')
         : (img.descriptor ?? '')
 
-      const resolved = generateFilename(sku, descriptor, img.originalName)
+      const position = positionMap.get(img.id) ?? 1
+      const resolved = generateFilename(sku, descriptor, img.originalName, preset, position)
       const isComplete = isFilenameComplete(sku, descriptor)
 
       return {
@@ -298,6 +336,21 @@ export const useAssetStore = create<AssetStore>()(
         ? state.collapsedSkus.filter((s) => s !== sku)
         : [...state.collapsedSkus, sku],
     }))
+  },
+
+  toggleInboxCollapsed: () => {
+    set((state) => ({ inboxCollapsed: !state.inboxCollapsed }))
+  },
+
+  collapseAllSkus: () => {
+    const allSkus = Array.from(
+      new Set(get().images.filter((img) => img.sku).map((img) => img.sku as string))
+    )
+    set({ collapsedSkus: allSkus, inboxCollapsed: true })
+  },
+
+  expandAllSkus: () => {
+    set({ collapsedSkus: [], inboxCollapsed: false })
   },
 
   setUploadZoneCollapsed: (collapsed: boolean) => {
@@ -350,7 +403,34 @@ export const useAssetStore = create<AssetStore>()(
   },
 
   clearSelection: () => {
-    set({ selectedImageIds: [] })
+    set({ selectedImageIds: [], lastSelectedId: null })
+  },
+
+  selectImages: (ids: string[]) => {
+    set({ selectedImageIds: ids })
+  },
+
+  setLastSelectedId: (id: string | null) => {
+    set({ lastSelectedId: id })
+  },
+
+  applyDescriptorToGroup: (imageId: string) => {
+    const { images } = get()
+    const source = images.find((img) => img.id === imageId)
+    if (!source?.sku || !source.descriptor) return
+    const descriptor    = source.descriptor
+    const customText    = source.customDescriptor ?? null
+    let appliedCount = 0
+    set((state) => ({
+      images: state.images.map((img) => {
+        if (img.sku !== source.sku || img.id === imageId || img.descriptor) return img
+        appliedCount++
+        return { ...img, descriptor, customDescriptor: descriptor === 'custom' ? customText : img.customDescriptor }
+      }),
+    }))
+    const { addToast } = get()
+    const label = descriptor === 'custom' ? (customText || 'custom') : descriptor
+    addToast('success', `Applied "${label}" to ${appliedCount} image${appliedCount !== 1 ? 's' : ''} in ${source.sku}`)
   },
 
   addToast: (type: ToastType, message: string, duration = 5000) => {
@@ -390,6 +470,8 @@ export const useAssetStore = create<AssetStore>()(
       name: 'renamerly-ui-state',
       partialize: (state) => ({
         hasSeenOnboarding: state.hasSeenOnboarding,
+        activePlatformPreset: state.activePlatformPreset,
+        aiConsentGiven: state.aiConsentGiven,
       }),
     }
   )

@@ -26,7 +26,7 @@ export function Button({
   const base = `inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-300 cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-deep-space ${sizeClasses[size]}`
 
   const disabledStyles = disabled
-    ? 'opacity-50 cursor-not-allowed hover:scale-100 hover:shadow-none'
+    ? 'opacity-40 cursor-not-allowed pointer-events-none'
     : ''
 
   if (variant === 'primary') {

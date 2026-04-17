@@ -1,3 +1,5 @@
+import type { PlatformPresetId } from '@/lib/platformPresets'
+
 export interface AssetImage {
   id: string
   file: File
@@ -8,6 +10,7 @@ export interface AssetImage {
   sku: string | null
   descriptor: string | null
   customDescriptor: string | null
+  altText: string | null
 }
 
 export interface ResolvedFilename {
@@ -58,18 +61,24 @@ export interface ProjectImageMeta {
   sku: string | null
   descriptor: string | null
   customDescriptor: string | null
+  altText: string | null
 }
 
 export interface AssetStore {
   images: AssetImage[]
   hasSeenOnboarding: boolean
   collapsedSkus: string[]
+  inboxCollapsed: boolean
   uploadZoneCollapsed: boolean
   selectedImageIds: string[]
+  lastSelectedId: string | null
   toasts: Toast[]
   confirmDialog: ConfirmDialogState | null
   currentProject: CurrentProject | null
   pendingProjectMeta: ProjectImageMeta[] | null
+  activePlatformPreset: PlatformPresetId
+  aiConsentGiven: boolean
+  aiRequestCount: number
 
   addImages: (files: File[], limit?: number) => Promise<void>
   removeImage: (id: string) => void
@@ -79,6 +88,10 @@ export interface AssetStore {
   setCustomDescriptor: (imageId: string, text: string) => void
   reset: () => void
 
+  setImageAltText: (imageId: string, altText: string) => void
+  setAiConsentGiven: () => void
+  incrementAiRequestCount: () => void
+  setActivePlatformPreset: (id: PlatformPresetId) => void
   setCurrentProject: (project: CurrentProject | null) => void
   loadProject: (project: { id: string; name: string; imageMetadata?: ProjectImageMeta[] }) => void
   renameCurrentSession: (name: string) => void
@@ -87,11 +100,17 @@ export interface AssetStore {
 
   setOnboardingComplete: () => void
   toggleSkuCollapse: (sku: string) => void
+  toggleInboxCollapsed: () => void
+  collapseAllSkus: () => void
+  expandAllSkus: () => void
   setUploadZoneCollapsed: (collapsed: boolean) => void
   toggleImageSelection: (imageId: string) => void
+  selectImages: (ids: string[]) => void
   selectAllImages: () => void
   selectAllInContext: (sku?: string) => void
   clearSelection: () => void
+  setLastSelectedId: (id: string | null) => void
+  applyDescriptorToGroup: (imageId: string) => void
 
   addToast: (type: ToastType, message: string, duration?: number) => void
   removeToast: (id: string) => void

@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useMemo, Suspense } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useAssetStore } from '@/stores/useAssetStore'
 import { useProject } from '@/hooks/useProjects'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
@@ -10,9 +10,7 @@ import { DragDropProvider } from '@/components/app/DragDropProvider'
 import { AppToolbar } from '@/components/app/AppToolbar'
 import { UploadZone } from '@/components/app/UploadZone'
 import { SelectionActionBar } from '@/components/app/SelectionActionBar'
-import { QuickSKUInput } from '@/components/app/QuickSKUInput'
-import { SKUProductGroup } from '@/components/app/SKUProductGroup'
-import { ImagesWithoutSKU } from '@/components/app/ImagesWithoutSKU'
+import { WorkspaceTable } from '@/components/app/WorkspaceTable'
 import { ExportControls } from '@/components/app/ExportControls'
 import { OnboardingModal } from '@/components/app/OnboardingModal'
 import { SessionPersistProvider } from '@/components/app/SessionPersistProvider'
@@ -51,34 +49,37 @@ function ProjectLoader() {
 
 export default function AppPage() {
   const images = useAssetStore((state) => state.images)
+  const selectedImageIds = useAssetStore((state) => state.selectedImageIds)
   const uploadZoneCollapsed = useAssetStore((state) => state.uploadZoneCollapsed)
   const setUploadZoneCollapsed = useAssetStore((state) => state.setUploadZoneCollapsed)
   const confirmDialog = useAssetStore((state) => state.confirmDialog)
   const closeConfirmDialog = useAssetStore((state) => state.closeConfirmDialog)
 
-  // Auto-group images by SKU
-  const groupedBySku = useMemo(() => {
-    const groups: Record<string, typeof images> = {}
-    images.forEach((img) => {
-      if (img.sku) {
-        if (!groups[img.sku]) {
-          groups[img.sku] = []
-        }
-        groups[img.sku].push(img)
-      }
-    })
-    return groups
-  }, [images])
+  const hasSelection = selectedImageIds.length > 0
 
-  const imagesWithoutSku = images.filter((img) => !img.sku)
   const hasImages = images.length > 0
-  const skus = Object.keys(groupedBySku).sort()
 
   useEffect(() => {
     if (hasImages && !uploadZoneCollapsed) {
       setUploadZoneCollapsed(true)
     }
   }, [hasImages, uploadZoneCollapsed, setUploadZoneCollapsed])
+
+  const [keyboardOffset, setKeyboardOffset] = useState(0)
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+    const update = () => {
+      const gap = window.innerHeight - vv.height - vv.offsetTop
+      setKeyboardOffset(Math.max(0, gap))
+    }
+    vv.addEventListener('resize', update)
+    vv.addEventListener('scroll', update)
+    return () => {
+      vv.removeEventListener('resize', update)
+      vv.removeEventListener('scroll', update)
+    }
+  }, [])
 
   return (
     <ErrorBoundary>
@@ -101,7 +102,7 @@ export default function AppPage() {
         />
       )}
       
-      <main className="min-h-screen pt-6 pb-6 sm:pt-8 sm:pb-8 px-4 sm:px-6 lg:px-8">
+      <main className="min-h-screen pt-6 pb-28 sm:pt-8 sm:pb-28 px-4 sm:px-6 lg:px-8">
         <DragDropProvider>
           <SessionPersistProvider />
           <motion.div
@@ -112,46 +113,28 @@ export default function AppPage() {
           {/* Toolbar */}
           <AppToolbar />
 
-          {/* Selection Action Bar - Sticky when images are selected */}
-          <SelectionActionBar />
-
-          {/* Upload Zone - Compact after upload */}
+          {/* Upload Zone - never moves regardless of selection state */}
           <UploadZone />
 
-          {/* Quick SKU Input - Prominent when images exist */}
-          {hasImages && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <QuickSKUInput />
-            </motion.div>
-          )}
+          {/* Selection Bar — fixed at bottom, slides in/out with selection state */}
+          <AnimatePresence initial={false}>
+            {hasImages && hasSelection && (
+              <motion.div
+                key="selection-bar"
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 14 }}
+                transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
+                className="fixed left-4 right-4 lg:left-20 z-40"
+                style={{ bottom: `${keyboardOffset + 16}px` }}
+              >
+                <SelectionActionBar />
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-          {/* Images Without SKU - Inbox/Staging Area at TOP (Enterprise Pattern) */}
-          <ImagesWithoutSKU images={imagesWithoutSku} />
-
-          {/* SKU Product Groups - Organized items below inbox (Enterprise Pattern) */}
-          {skus.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="space-y-4 sm:space-y-5"
-            >
-              {skus.map((sku, index) => (
-                <motion.div
-                  key={sku}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 + index * 0.05 }}
-                >
-                  <SKUProductGroup sku={sku} images={groupedBySku[sku]} />
-                </motion.div>
-              ))}
-            </motion.div>
-          )}
+          {/* Unified virtual workspace table */}
+          {hasImages && <WorkspaceTable />}
 
           {/* Export Controls - Always at Bottom */}
           {hasImages && (
