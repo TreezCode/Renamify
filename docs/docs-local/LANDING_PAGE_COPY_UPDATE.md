@@ -1,6 +1,6 @@
 # Landing Page Copy Update — Post Sprint 3
 
-**Purpose:** Refresh landing page messaging to reflect the full feature set shipped across Plan 05 and Plan 08 (Sprints 1–3). Optimize for conversion with AI and SEO as the primary hooks.
+**Purpose:** Refresh landing page messaging to reflect the full feature set shipped across Plan 05, Plan 08 (Sprints 1–3), and Plan 10 (Everyday Mode). Optimize for conversion with AI and SEO as primary hooks while opening a second audience segment (everyday/personal photographers) without diluting the e-commerce niche.
 
 ---
 
@@ -14,6 +14,7 @@
 | Sprint 1 | SEO Filename Quality Score, Naming Preview Table, CSV Export |
 | Sprint 2 | Platform presets: Shopify, Amazon, Etsy, WooCommerce |
 | Sprint 3 | **AI Descriptor Suggestions**, **AI SEO Alt Text Generator**, bulk AI apply |
+| Plan 10 | **Everyday Photos preset**, bulk descriptor strategies (datetime, sequential), vocabulary-adaptive UI |
 
 The product has moved from "batch file renamer" to **"AI-powered product image SEO suite"**. The copy must reflect this.
 
@@ -23,11 +24,14 @@ The product has moved from "batch file renamer" to **"AI-powered product image S
 
 > Renamerly is the only tool built specifically for e-commerce sellers that renames, scores, and AI-tags product images for Google — in one workflow, with platform-native naming conventions for Shopify, Etsy, Amazon, and WooCommerce.
 
+> For everyday users, it's the fastest way to rename 500 vacation photos by event and date — no technical knowledge required.
+
 **Primary differentiators over competitors (e.g. Renamify):**
 1. SKU-based naming system built for e-commerce (not generic batch renaming)
 2. AI that suggests descriptors AND generates SEO alt text from the actual image
 3. Platform-aware naming conventions (Shopify handle format, Amazon ASIN format, etc.)
 4. Professional workflow: Preview → Score → Rename → Export CSV manifest
+5. **Everyday Photos mode** — same workflow, vocabulary adapted for non-technical users
 
 ---
 
@@ -37,17 +41,29 @@ The product has moved from "batch file renamer" to **"AI-powered product image S
 > "Rename your product images in seconds"
 
 ### Recommended New Headline
-> **"AI-powered image naming for e-commerce that Google actually ranks"**
+> **"Rename. Organize. Export. In minutes, not hours."**
+
+*(Broad enough for both audiences; specifics delivered in the subheadline)*
 
 ### Subheadline options (A/B test these)
-**Option A — Workflow-focused:**
+**Option A — E-commerce focused:**
 > Batch rename, AI-tag, and SEO-score your product photos for Shopify, Etsy, and Amazon. Export a complete catalog CSV in one click.
 
-**Option B — Pain-led:**
-> Stop manually naming product photos. Renamerly reads your images with AI, suggests the right descriptor, and generates SEO alt text — ready for any platform.
+**Option B — Everyday focused:**
+> Drop in your vacation shots, type an event name, and let Renamerly auto-name every photo by date and time — download your ZIP in seconds.
 
-**Option C — Outcome-focused:**
-> The professional product image workflow: SKU-organize, AI-describe, SEO-score, and export — in minutes instead of hours.
+**Option C — Dual-audience (recommended):**
+> Whether you're a Shopify seller organizing 1,000 product shots or a parent archiving family photos — Renamerly renames, organizes, and exports your images in minutes.
+
+**Option D — Pain-led:**
+> Stop manually naming every photo. Renamerly reads your images with AI, suggests the right descriptor, and generates SEO alt text — ready for any platform.
+
+### Audience Switcher (optional UI pattern)
+Consider a two-tab or two-button toggle beneath the headline:
+```
+[  For E-Commerce  ]  [  For Everyday Use  ]
+```
+Each tab swaps the subheadline and hero screenshot. Simple to implement, zero copy fragmentation.
 
 ### Hero CTA
 - Primary: **"Start Free — No Credit Card"**
@@ -67,6 +83,14 @@ The product has moved from "batch file renamer" to **"AI-powered product image S
 **After:** **"The complete e-commerce image workflow"**
 
 ### Feature Cards — Revised Copy
+
+#### 0. Everyday Photos Mode *(NEW — add before AI cards)*
+**Icon:** 📷 Camera
+**Headline:** Not Just for Sellers
+**Body:** Renamerly now speaks your language. Switch to Everyday Photos mode and group shots by event ("beach-trip-2024"), auto-fill the date and time from each file, and export a clean ZIP — no SKU knowledge required. Perfect for photographers, parents, and anyone who batch-renames.
+**Badge:** Free
+
+---
 
 #### 1. AI Descriptor Suggestions *(NEW — lead with this)*
 **Icon:** ✨ Sparkle
@@ -129,9 +153,9 @@ The product has moved from "batch file renamer" to **"AI-powered product image S
 Add a 3-stat bar between hero and features:
 
 | Stat | Copy |
-|---|---|
+|---|
 | **12 image descriptors** | Built for every product angle |
-| **6 platform presets** | Shopify, Etsy, Amazon, WooCommerce + more |
+| **7 naming presets** | Everyday Photos, Shopify, Etsy, Amazon + more |
 | **~$0.003 per AI analysis** | Powered by GPT-4o Mini |
 
 *(Replace with real user/usage stats once available: "X images renamed", "X users", etc.)*
@@ -148,11 +172,12 @@ Add a 3-stat bar between hero and features:
 
 #### Free Tier
 **Label:** Free Forever
-**Best for:** "Casual sellers, first batch"
+**Best for:** "Casual sellers, first batch, everyday photographers"
 
 New bullet to add:
+- ✅ **Everyday Photos mode** (auto-fill dates & times, collection-based grouping)
 - ✅ SEO filename scoring on every image
-- ✅ 3 platform presets (Generic, Shopify, Amazon)
+- ✅ 4 naming presets (Everyday Photos, Generic, Amazon, Dated)
 - ✅ Naming preview table (view only)
 
 Remove/downplay:
@@ -214,11 +239,11 @@ Logo · Features · **AI Features** · Pricing · Log In · **Start Free** (CTA 
 
 | Tag | Current | Recommended |
 |---|---|---|
-| `<title>` | "Renamerly — Product Image Renaming Tool" | "Renamerly — AI Product Image SEO & Renaming for Shopify, Etsy & Amazon" |
-| `<description>` | "Transform messy filenames into organized, SEO-friendly names" | "AI-powered product image renaming, SEO alt text generation, and platform-specific naming for Shopify, Etsy, and Amazon. Export a full CSV manifest in one click." |
+| `<title>` | "Renamerly — Product Image Renaming Tool" | "Renamerly — Batch Rename & Organize Photos for E-Commerce and Everyday Use" |
+| `<description>` | "Transform messy filenames into organized, SEO-friendly names" | "AI-powered image renaming and organization. Auto-fill dates, SEO-score filenames, and export in platform-native formats for Shopify, Etsy, and Amazon — or rename vacation photos in seconds with Everyday Photos mode." |
 | OG title | Same as title | Same as recommended title |
 | OG description | Same as description | Same as recommended description |
-| Keywords (if used) | — | product image renaming, shopify image seo, etsy image alt text, amazon image naming, ai alt text generator, ecommerce product photos seo |
+| Keywords (if used) | — | product image renaming, shopify image seo, etsy image alt text, amazon image naming, ai alt text generator, ecommerce product photos seo, batch rename photos, organize photos by date, vacation photo renaming |
 
 ---
 

@@ -2,10 +2,10 @@
 
 import { useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { RefreshCw, Zap, Infinity as InfinityIcon, ChevronDown, Lock, Check, Tag, ChevronsDownUp, ChevronsUpDown } from 'lucide-react'
+import { RefreshCw, Zap, Infinity as InfinityIcon, ChevronDown, Lock, Check, Tag, ChevronsDownUp, ChevronsUpDown, Camera, Type } from 'lucide-react'
 import { useAssetStore } from '@/stores/useAssetStore'
 import { useSubscription } from '@/hooks/useSubscription'
-import { PLATFORM_PRESETS } from '@/lib/platformPresets'
+import { PLATFORM_PRESETS, getPresetById, getVocabulary } from '@/lib/platformPresets'
 import { Button } from '@/components/ui/Button'
 import { UpgradeModal } from '@/components/ui/UpgradeModal'
 
@@ -16,6 +16,8 @@ export function AppToolbar() {
   const addToast = useAssetStore((state) => state.addToast)
   const activePlatformPreset = useAssetStore((state) => state.activePlatformPreset)
   const setActivePlatformPreset = useAssetStore((state) => state.setActivePlatformPreset)
+  const humanReadable       = useAssetStore((state) => state.humanReadable)
+  const setHumanReadable    = useAssetStore((state) => state.setHumanReadable)
   const collapsedSkus = useAssetStore((state) => state.collapsedSkus)
   const inboxCollapsed = useAssetStore((state) => state.inboxCollapsed)
   const collapseAllSkus = useAssetStore((state) => state.collapseAllSkus)
@@ -28,6 +30,9 @@ export function AppToolbar() {
   const triggerRef = useRef<HTMLButtonElement>(null)
 
   const activePreset = PLATFORM_PRESETS.find((p) => p.id === activePlatformPreset) ?? PLATFORM_PRESETS[0]
+  const everydayPresets   = PLATFORM_PRESETS.filter((p) => p.id === 'everyday')
+  const ecommercePresets  = PLATFORM_PRESETS.filter((p) => p.id !== 'everyday')
+  const vocab = getVocabulary(getPresetById(activePlatformPreset))
   const isNonGeneric = activePlatformPreset !== 'generic'
 
   const handleToggleMenu = () => {
@@ -93,7 +98,7 @@ export function AppToolbar() {
             {uniqueSkus > 0 && (
               <>
                 <div>
-                  <span className="text-gray-400 text-sm mr-2">Products:</span>
+                  <span className="text-gray-400 text-sm mr-2">{vocab.group}s:</span>
                   <span className="font-semibold text-treez-purple">{uniqueSkus}</span>
                 </div>
                 <div>
@@ -117,6 +122,23 @@ export function AppToolbar() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Human-readable filenames toggle — everyday preset only */}
+            {activePlatformPreset === 'everyday' && (
+              <button
+                onClick={() => setHumanReadable(!humanReadable)}
+                title={humanReadable ? 'Switch to hyphenated lowercase filenames' : 'Switch to human-readable filenames (spaces & title case)'}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all
+                  ${
+                    humanReadable
+                      ? 'bg-treez-cyan/10 border-treez-cyan/30 text-treez-cyan hover:bg-treez-cyan/20'
+                      : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20 hover:text-white'
+                  }`}
+              >
+                <Type className="w-3.5 h-3.5 shrink-0" />
+                <span>Readable Names</span>
+              </button>
+            )}
+
             {/* Platform Preset Selector */}
             <button
               ref={triggerRef}
@@ -186,11 +208,53 @@ export function AppToolbar() {
             <div className="px-4 py-3 border-b border-white/5 flex items-center gap-2">
               <Tag className="w-3.5 h-3.5 text-treez-purple shrink-0" />
               <div>
-                <p className="text-sm font-semibold text-white">Naming Format</p>
+                <p className="text-sm font-semibold text-white">Naming Preset</p>
                 <p className="text-[11px] text-gray-500">Applied to all filenames this session</p>
               </div>
             </div>
-            {PLATFORM_PRESETS.map((preset) => {
+
+            {/* ── Everyday Use ── */}
+            <div className="px-3 py-1 flex items-center gap-1.5">
+              <Camera className="w-3 h-3 text-gray-600" />
+              <span className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider">Everyday Use</span>
+            </div>
+            {everydayPresets.map((preset) => {
+              const isLocked = preset.proOnly && !isPro
+              const isActive = preset.id === activePlatformPreset
+              return (
+                <button
+                  key={preset.id}
+                  onClick={() => {
+                    if (isLocked) { setShowPresetMenu(false); setShowUpgradeModal(true); return }
+                    setActivePlatformPreset(preset.id)
+                    setShowPresetMenu(false)
+                  }}
+                  className={`w-full px-4 py-2.5 text-left flex items-start gap-3 transition-colors border-b border-white/4
+                    ${isActive ? 'bg-treez-purple/12' : isLocked ? 'opacity-50 hover:opacity-60' : 'hover:bg-white/5'}`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className={`text-sm font-medium ${isActive ? 'text-treez-purple' : isLocked ? 'text-gray-500' : 'text-white'}`}>
+                        {preset.label}
+                      </span>
+                      {isLocked && <Lock className="w-3 h-3 text-gray-600" />}
+                      {isActive && <Check className="w-3 h-3 text-treez-purple" />}
+                    </div>
+                    <p className="text-[11px] text-gray-500 mt-0.5">{preset.description}</p>
+                    <code className={`text-[10px] font-mono mt-1 block ${isActive ? 'text-treez-cyan' : 'text-gray-600'}`}>
+                      {preset.example}
+                    </code>
+                  </div>
+                </button>
+              )
+            })}
+
+            {/* ── E-Commerce ── */}
+            <div className="px-3 py-1 flex items-center gap-1.5 border-t border-white/5">
+              <Tag className="w-3 h-3 text-gray-600" />
+              <span className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider">E-Commerce</span>
+            </div>
+            {ecommercePresets.map((preset) => {
               const isLocked = preset.proOnly && !isPro
               const isActive = preset.id === activePlatformPreset
               return (

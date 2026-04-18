@@ -1,4 +1,5 @@
 import type { PlatformPresetId } from '@/lib/platformPresets'
+import type { StrategyId } from '@/lib/descriptorStrategies'
 
 export interface AssetImage {
   id: string
@@ -79,6 +80,7 @@ export interface AssetStore {
   activePlatformPreset: PlatformPresetId
   aiConsentGiven: boolean
   aiRequestCount: number
+  humanReadable: boolean
 
   addImages: (files: File[], limit?: number) => Promise<void>
   removeImage: (id: string) => void
@@ -86,11 +88,13 @@ export interface AssetStore {
   setBulkSku: (imageIds: string[], sku: string) => void
   setImageDescriptor: (imageId: string, descriptor: string) => void
   setCustomDescriptor: (imageId: string, text: string) => void
+  applyDescriptorStrategy: (imageIds: string[], strategy: StrategyId) => void
   reset: () => void
 
   setImageAltText: (imageId: string, altText: string) => void
   setAiConsentGiven: () => void
   incrementAiRequestCount: () => void
+  setHumanReadable: (value: boolean) => void
   setActivePlatformPreset: (id: PlatformPresetId) => void
   setCurrentProject: (project: CurrentProject | null) => void
   loadProject: (project: { id: string; name: string; imageMetadata?: ProjectImageMeta[] }) => void

@@ -8,6 +8,7 @@ import { Images, ChevronDown, Check } from 'lucide-react'
 import { useAssetStore } from '@/stores/useAssetStore'
 import { useSubscription } from '@/hooks/useSubscription'
 import { AssetImage } from '@/types'
+import { getPresetById, getVocabulary } from '@/lib/platformPresets'
 import { WorkspaceGroupHeader } from './WorkspaceGroupHeader'
 import { WorkspaceTableRow } from './WorkspaceTableRow'
 import { WorkspaceContextMenu } from './WorkspaceContextMenu'
@@ -28,9 +29,11 @@ function InboxHeader({ count, isCollapsed, onToggle, imageIds }: {
   imageIds: string[]
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: 'remove-sku' })
-  const selectedImageIds  = useAssetStore((s) => s.selectedImageIds)
-  const selectImages      = useAssetStore((s) => s.selectImages)
-  const setLastSelectedId = useAssetStore((s) => s.setLastSelectedId)
+  const selectedImageIds    = useAssetStore((s) => s.selectedImageIds)
+  const selectImages        = useAssetStore((s) => s.selectImages)
+  const setLastSelectedId   = useAssetStore((s) => s.setLastSelectedId)
+  const activePlatformPreset = useAssetStore((s) => s.activePlatformPreset)
+  const vocab = getVocabulary(getPresetById(activePlatformPreset))
   const allSelected  = imageIds.length > 0 && imageIds.every((id) => selectedImageIds.includes(id))
   const someSelected = imageIds.some((id) => selectedImageIds.includes(id))
   const handleSelect = (e: React.MouseEvent) => {
@@ -77,7 +80,7 @@ function InboxHeader({ count, isCollapsed, onToggle, imageIds }: {
           {count}
         </span>
         {isOver && (
-          <span className="text-[10px] text-treez-cyan font-medium animate-pulse">Drop to unassign SKU</span>
+          <span className="text-[10px] text-treez-cyan font-medium animate-pulse">Drop to remove {vocab.sku}</span>
         )}
         <motion.div
           animate={{ rotate: isCollapsed ? 0 : 180 }}
@@ -102,7 +105,10 @@ export function WorkspaceTable() {
   const selectImages         = useAssetStore((s) => s.selectImages)
   const clearSelection       = useAssetStore((s) => s.clearSelection)
   const setLastSelectedId    = useAssetStore((s) => s.setLastSelectedId)
+  const activePlatformPreset = useAssetStore((s) => s.activePlatformPreset)
   const { isPro }            = useSubscription()
+
+  const vocab = getVocabulary(getPresetById(activePlatformPreset))
 
   const parentRef = useRef<HTMLDivElement>(null)
 
@@ -247,7 +253,7 @@ export function WorkspaceTable() {
             <div className="w-8 shrink-0" />
             <div className="w-9 shrink-0" />
             <div className="flex-1 min-w-0 px-2">File</div>
-            <div className="w-44 shrink-0 px-2">Descriptor</div>
+            <div className="w-44 shrink-0 px-2">{vocab.descriptor}</div>
             <div className="w-44 shrink-0 px-2 hidden md:block">New Name</div>
             <div className="w-24 shrink-0 px-2 hidden lg:block">SEO</div>
             <div className="w-10 shrink-0" />

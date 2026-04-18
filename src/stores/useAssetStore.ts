@@ -3,8 +3,9 @@ import { persist } from 'zustand/middleware'
 import type { AssetStore, AssetImage, ResolvedFilename, ToastType, CurrentProject, ProjectImageMeta } from '@/types'
 import { getPresetById, type PlatformPresetId } from '@/lib/platformPresets'
 import { clearSession, markSessionCleared } from '@/lib/idb-session'
-import { generateFilename, isFilenameComplete, getFileExtension } from '@/lib/filename'
-import { MAX_FREE_IMAGES, ITERATION_PRESETS } from '@/lib/constants'
+import { generateFilename, humanizeFilename, isFilenameComplete, getFileExtension } from '@/lib/filename'
+import { MAX_FREE_IMAGES } from '@/lib/constants'
+import { getStrategyById, type StrategyId } from '@/lib/descriptorStrategies'
 import { validateImageFile, getTotalFileSize } from '@/lib/file-validation'
 import { cleanupThumbnails } from '@/lib/memory-monitor'
 
@@ -35,6 +36,7 @@ export const useAssetStore = create<AssetStore>()(
       activePlatformPreset: 'generic' as PlatformPresetId,
       aiConsentGiven: false,
       aiRequestCount: 0,
+      humanReadable: false,
 
   addImages: async (files: File[], limit: number = MAX_FREE_IMAGES) => {
     const { images } = get()
@@ -171,51 +173,85 @@ export const useAssetStore = create<AssetStore>()(
     }))
   },
 
+  applyDescriptorStrategy: (imageIds: string[], strategyId: StrategyId) => {
+    const { images } = get()
+    const strategy = getStrategyById(strategyId)
+    if (!strategy) return
+
+    // Group target images by their SKU so we can handle each group independently
+    const targetImages = images.filter((img) => imageIds.includes(img.id))
+    const skuGroups = new Map<string | null, AssetImage[]>()
+    for (const img of targetImages) {
+      const key = img.sku ?? null
+      if (!skuGroups.has(key)) skuGroups.set(key, [])
+      skuGroups.get(key)!.push(img)
+    }
+
+    // Compute collision-safe descriptor values per group
+    const updates = new Map<string, string>() // imageId → customDescriptor value
+
+    for (const [sku, groupImages] of skuGroups) {
+      const allGroupImages = images.filter((img) => (img.sku ?? null) === sku)
+
+      // Seed reserved set with descriptors already used by images NOT in this operation
+      const reserved = new Set<string>(
+        allGroupImages
+          .filter((img) => !imageIds.includes(img.id))
+          .map((img) => img.customDescriptor)
+          .filter((v): v is string => !!v)
+      )
+
+      for (const img of groupImages) {
+        const idx = allGroupImages.findIndex((gi) => gi.id === img.id)
+        let value = strategy.compute(img, idx)
+
+        if (reserved.has(value)) {
+          let suffix = 2
+          while (reserved.has(`${value}-${suffix}`)) suffix++
+          value = `${value}-${suffix}`
+        }
+        reserved.add(value)
+        updates.set(img.id, value)
+      }
+    }
+
+    set((state) => ({
+      images: state.images.map((img) =>
+        updates.has(img.id)
+          ? { ...img, descriptor: 'custom', customDescriptor: updates.get(img.id)! }
+          : img
+      ),
+    }))
+  },
+
   setImageDescriptor: (imageId: string, descriptor: string) => {
     const { images } = get()
-    const targetImage = images.find(img => img.id === imageId)
-    
-    // Normalize empty string to null
     const normalizedDescriptor = descriptor || null
-    
-    // Check if this is an iteration preset
-    const iterationPreset = ITERATION_PRESETS.find(p => p.value === normalizedDescriptor)
-    
-    if (iterationPreset && targetImage) {
-      // Auto-apply iteration to all images in same SKU (or no-SKU if no SKU assigned)
-      const targetSku = targetImage.sku
-      const skuImages = images.filter(img => img.sku === targetSku)
-      
-      set((state) => ({
-        images: state.images.map((img) => {
-          if (img.sku === targetSku) {
-            // Find index within SKU group
-            const index = skuImages.findIndex(si => si.id === img.id)
-            const iteratedValue = iterationPreset.format(index + 1)
-            
-            return {
-              ...img,
-              descriptor: 'custom', // Store as custom so it displays the formatted value
-              customDescriptor: iteratedValue
-            }
-          }
-          return img
-        }),
-      }))
-    } else {
-      // Regular descriptor assignment
-      set((state) => ({
-        images: state.images.map((img) =>
-          img.id === imageId
-            ? { 
-                ...img, 
-                descriptor: normalizedDescriptor, 
-                customDescriptor: normalizedDescriptor === 'custom' ? img.customDescriptor : null 
-              }
-            : img
-        ),
-      }))
+
+    // Delegate to applyDescriptorStrategy when a strategy id is selected (e.g. 'num-2', 'datetime')
+    const strategy = getStrategyById(normalizedDescriptor ?? '')
+    if (strategy) {
+      const targetImage = images.find((img) => img.id === imageId)
+      if (!targetImage) return
+      const groupIds = images
+        .filter((img) => (img.sku ?? null) === (targetImage.sku ?? null))
+        .map((img) => img.id)
+      get().applyDescriptorStrategy(groupIds, strategy.id)
+      return
     }
+
+    // Regular named descriptor or custom
+    set((state) => ({
+      images: state.images.map((img) =>
+        img.id === imageId
+          ? {
+              ...img,
+              descriptor: normalizedDescriptor,
+              customDescriptor: normalizedDescriptor === 'custom' ? img.customDescriptor : null,
+            }
+          : img
+      ),
+    }))
   },
 
   setCustomDescriptor: (imageId: string, text: string) => {
@@ -279,9 +315,12 @@ export const useAssetStore = create<AssetStore>()(
     }))
   },
 
+  setHumanReadable: (value: boolean) => set({ humanReadable: value }),
+
   getResolvedFilenames: (): ResolvedFilename[] => {
-    const { images, activePlatformPreset } = get()
+    const { images, activePlatformPreset, humanReadable } = get()
     const preset = getPresetById(activePlatformPreset)
+    const applyHuman = humanReadable && activePlatformPreset === 'everyday'
     const skuCounters = new Map<string, number>()
     const positionMap = new Map<string, number>()
     images.forEach((img) => {
@@ -298,7 +337,8 @@ export const useAssetStore = create<AssetStore>()(
         : (img.descriptor ?? '')
 
       const position = positionMap.get(img.id) ?? 1
-      const resolved = generateFilename(sku, descriptor, img.originalName, preset, position)
+      const raw = generateFilename(sku, descriptor, img.originalName, preset, position)
+      const resolved = applyHuman && raw ? humanizeFilename(sku, descriptor, img.originalName) : raw
       const isComplete = isFilenameComplete(sku, descriptor)
 
       return {

@@ -1,15 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
-import { ChevronDown, Check, AlertCircle, Package, Download } from 'lucide-react'
+import { ChevronDown, Check, AlertCircle, Package, Download, Hash } from 'lucide-react'
 import { useDroppable } from '@dnd-kit/core'
 import { useAssetStore } from '@/stores/useAssetStore'
 import { AssetImage } from '@/types'
 import { exportAsZip } from '@/lib/export'
-import { generateFilename } from '@/lib/filename'
+import { generateFilename, humanizeFilename } from '@/lib/filename'
 import { buildCsvManifest } from '@/lib/csv'
-import { getPresetById } from '@/lib/platformPresets'
+import { getPresetById, getVocabulary } from '@/lib/platformPresets'
+import { getStrategiesForPreset, type StrategyId } from '@/lib/descriptorStrategies'
 
 interface WorkspaceGroupHeaderProps {
   sku: string
@@ -26,10 +28,31 @@ export function WorkspaceGroupHeader({ sku, images }: WorkspaceGroupHeaderProps)
   const selectImages       = useAssetStore((s) => s.selectImages)
   const setLastSelectedId  = useAssetStore((s) => s.setLastSelectedId)
 
+  const applyDescriptorStrategy = useAssetStore((s) => s.applyDescriptorStrategy)
+  const humanReadable           = useAssetStore((s) => s.humanReadable)
+
   const [isExporting,    setIsExporting]    = useState(false)
   const [exportProgress, setExportProgress] = useState(0)
+  const [strategyOpen,   setStrategyOpen]   = useState(false)
+  const [strategyRect,   setStrategyRect]   = useState<DOMRect | null>(null)
+  const strategyRef  = useRef<HTMLDivElement>(null)
+  const strategyBtnRef = useRef<HTMLButtonElement>(null)
 
   const preset     = getPresetById(activePlatformPreset)
+  const vocab      = getVocabulary(preset)
+  const strategies = getStrategiesForPreset(activePlatformPreset)
+
+  useEffect(() => {
+    if (!strategyOpen) return
+    const handler = (e: MouseEvent) => {
+      if (
+        !strategyRef.current?.contains(e.target as Node) &&
+        !strategyBtnRef.current?.contains(e.target as Node)
+      ) setStrategyOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [strategyOpen])
   const isCollapsed = collapsedSkus.includes(sku)
 
   const configuredCount = images.filter((img) => {
@@ -40,6 +63,18 @@ export function WorkspaceGroupHeader({ sku, images }: WorkspaceGroupHeaderProps)
   const allConfigured   = configuredCount === images.length && images.length > 0
   const someConfigured  = configuredCount > 0
   const progressPercent = images.length > 0 ? (configuredCount / images.length) * 100 : 0
+
+  const unassignedIds = images
+    .filter((img) => !img.descriptor || (img.descriptor === 'custom' && !img.customDescriptor?.trim()))
+    .map((img) => img.id)
+
+  const handleAutoFill = (e: React.MouseEvent, strategyId: StrategyId) => {
+    e.stopPropagation()
+    setStrategyOpen(false)
+    const idsToFill = unassignedIds.length > 0 ? unassignedIds : groupImageIds
+    applyDescriptorStrategy(idsToFill, strategyId)
+    addToast('success', `${vocab.descriptor}s filled for ${idsToFill.length} image${idsToFill.length !== 1 ? 's' : ''}`)
+  }
 
   const groupImageIds     = images.map((img) => img.id)
   const allGroupSelected  = groupImageIds.length > 0 && groupImageIds.every((id) => selectedImageIds.includes(id))
@@ -72,7 +107,10 @@ export function WorkspaceGroupHeader({ sku, images }: WorkspaceGroupHeaderProps)
           const descriptor = image.descriptor === 'custom'
             ? (image.customDescriptor || '')
             : (image.descriptor || '')
-          return generateFilename(sku, descriptor, image.originalName, preset, positionMap.get(image.id) ?? 1)
+          const raw = generateFilename(sku, descriptor, image.originalName, preset, positionMap.get(image.id) ?? 1)
+          return humanReadable && activePlatformPreset === 'everyday' && raw
+            ? humanizeFilename(sku, descriptor, image.originalName)
+            : raw
         },
         (percent) => setExportProgress(Math.round(percent)),
         manifest,
@@ -168,8 +206,66 @@ export function WorkspaceGroupHeader({ sku, images }: WorkspaceGroupHeaderProps)
       {/* Drop hint */}
       {isOver && (
         <span className="text-[10px] text-treez-cyan font-medium shrink-0 animate-pulse">
-          Drop to assign
+          Drop to assign {vocab.sku}
         </span>
+      )}
+
+      {/* Auto-fill descriptor button */}
+      <div className="shrink-0">
+        <button
+          ref={strategyBtnRef}
+          onClick={(e) => {
+            e.stopPropagation()
+            if (!strategyOpen && strategyBtnRef.current) {
+              setStrategyRect(strategyBtnRef.current.getBoundingClientRect())
+            }
+            setStrategyOpen((o) => !o)
+          }}
+          title={vocab.autoFill}
+          className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium
+            bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10
+            transition-all duration-200"
+        >
+          <Hash className="w-3 h-3" />
+          <span className="hidden sm:inline">{vocab.autoFill}</span>
+        </button>
+      </div>
+
+      {strategyOpen && strategyRect && typeof document !== 'undefined' && createPortal(
+        <>
+          <div className="fixed inset-0 z-9998" onClick={() => setStrategyOpen(false)} />
+          <div
+            ref={strategyRef}
+            style={{ top: strategyRect.bottom + 4, right: window.innerWidth - strategyRect.right }}
+            className="fixed z-9999 min-w-[200px]
+              bg-[#12121f] border border-white/10 rounded-xl shadow-2xl shadow-black/60
+              backdrop-blur-xl overflow-hidden"
+          >
+            {unassignedIds.length > 0 && unassignedIds.length < images.length && (
+              <div className="px-3 py-1.5 text-[10px] text-gray-500 border-b border-white/5">
+                {unassignedIds.length} unassigned · filling those first
+              </div>
+            )}
+            {unassignedIds.length === 0 && (
+              <div className="px-3 py-1.5 text-[10px] text-gray-500 border-b border-white/5">
+                All assigned · will overwrite
+              </div>
+            )}
+            {strategies.map((strategy) => (
+              <button
+                key={strategy.id}
+                onClick={(e) => handleAutoFill(e, strategy.id)}
+                className="w-full text-left px-3 py-2 text-xs text-gray-300
+                  hover:bg-white/5 hover:text-white transition-colors
+                  flex items-center justify-between gap-3"
+              >
+                <span>{strategy.label}</span>
+                <span className="text-gray-600 font-mono text-[10px]">{strategy.example}</span>
+              </button>
+            ))}
+          </div>
+        </>,
+        document.body
       )}
 
       {/* Export button */}

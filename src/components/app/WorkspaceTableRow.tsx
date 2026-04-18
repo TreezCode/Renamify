@@ -7,9 +7,10 @@ import { useDraggable } from '@dnd-kit/core'
 import { useAssetStore } from '@/stores/useAssetStore'
 import { AssetImage } from '@/types'
 import { DEFAULT_DESCRIPTORS, ITERATION_PRESETS } from '@/lib/constants'
-import { sanitizeString, generateFilename } from '@/lib/filename'
+import { sanitizeString, generateFilename, humanizeFilename } from '@/lib/filename'
 import { scoreSeoFilename, type SeoGrade } from '@/lib/seo'
-import { getPresetById } from '@/lib/platformPresets'
+import { getPresetById, getVocabulary } from '@/lib/platformPresets'
+import { getStrategiesForPreset } from '@/lib/descriptorStrategies'
 import { useAiAnalysis, type AiDescriptorResult } from '@/hooks/useAiAnalysis'
 import { AiConsentModal } from '@/components/app/AiConsentModal'
 
@@ -44,6 +45,7 @@ export function WorkspaceTableRow({ image, sku, position, usedDescriptors, isPro
   const addToast            = useAssetStore((s) => s.addToast)
   const selectedImageIds    = useAssetStore((s) => s.selectedImageIds)
   const activePlatformPreset = useAssetStore((s) => s.activePlatformPreset)
+  const humanReadable       = useAssetStore((s) => s.humanReadable)
   const aiConsentGiven      = useAssetStore((s) => s.aiConsentGiven)
   const setAiConsentGiven   = useAssetStore((s) => s.setAiConsentGiven)
 
@@ -55,7 +57,11 @@ export function WorkspaceTableRow({ image, sku, position, usedDescriptors, isPro
   const [showConsent,     setShowConsent]     = useState(false)
   const [pendingAction,   setPendingAction]   = useState<(() => void) | null>(null)
 
-  const preset = getPresetById(activePlatformPreset)
+  const preset       = getPresetById(activePlatformPreset)
+  const vocab         = getVocabulary(preset)
+  const isEveryday    = activePlatformPreset === 'everyday'
+  const dateStrategies = getStrategiesForPreset(activePlatformPreset)
+    .filter((s) => s.id === 'datetime' || s.id === 'date-only')
   const isSelected = selectedImageIds.includes(image.id)
   const canUseAi   = isPro && !!sku && !image.isRaw && !isAtLimit
 
@@ -67,9 +73,12 @@ export function WorkspaceTableRow({ image, sku, position, usedDescriptors, isPro
   const resolvedDescriptor =
     image.descriptor === 'custom' ? (image.customDescriptor ?? '') : (image.descriptor ?? '')
 
-  const newName = sku && resolvedDescriptor
+  const rawName = sku && resolvedDescriptor
     ? generateFilename(sku, resolvedDescriptor, image.originalName, preset, position)
     : ''
+  const newName = humanReadable && activePlatformPreset === 'everyday' && sku && resolvedDescriptor
+    ? humanizeFilename(sku, resolvedDescriptor, image.originalName)
+    : rawName
 
   const seoResult = newName ? scoreSeoFilename(newName) : null
 
@@ -123,15 +132,15 @@ export function WorkspaceTableRow({ image, sku, position, usedDescriptors, isPro
     e.stopPropagation()
     const isInbox = !sku
     showConfirmDialog({
-      title: isInbox ? 'Remove image?' : 'Remove SKU?',
+      title: isInbox ? 'Remove image?' : `Remove ${vocab.sku}?`,
       description: isInbox
         ? `Remove "${image.originalName}" from the workspace?`
-        : `Remove SKU from "${image.originalName}"? You can reassign it later.`,
+        : `Remove ${vocab.sku} from "${image.originalName}"? You can reassign it later.`,
       variant: 'warning',
-      confirmLabel: isInbox ? 'Remove' : 'Remove SKU',
+      confirmLabel: isInbox ? 'Remove' : `Remove ${vocab.sku}`,
       onConfirm: () => {
         setImageSku(image.id, '')
-        addToast('success', isInbox ? 'Image removed' : 'SKU removed from image')
+        addToast('success', isInbox ? 'Image removed' : `${vocab.sku} removed from image`)
       },
     })
   }
@@ -190,7 +199,7 @@ export function WorkspaceTableRow({ image, sku, position, usedDescriptors, isPro
             {image.originalName}
           </p>
           {!sku && (
-            <p className="text-[10px] text-gray-600 mt-0.5">Select &amp; assign SKU</p>
+            <p className="text-[10px] text-gray-600 mt-0.5">Select &amp; {vocab.assignSku.toLowerCase()}</p>
           )}
         </div>
 
@@ -208,15 +217,24 @@ export function WorkspaceTableRow({ image, sku, position, usedDescriptors, isPro
                     hover:border-white/20 transition-all"
                 >
                   <option value="" className="bg-deep-space">Select…</option>
-                  <optgroup label="── Auto-Iteration ──" className="bg-deep-space">
+                  <optgroup label="── Auto-Fill ──" className="bg-deep-space">
                     {ITERATION_PRESETS.map((p) => (
                       <option key={p.value} value={p.value} className="bg-deep-space text-white">
                         {p.label}
                       </option>
                     ))}
                   </optgroup>
-                  <optgroup label="── Descriptors ──" className="bg-deep-space">
-                    {DEFAULT_DESCRIPTORS.map((d) => {
+                  <optgroup label={`── ${vocab.descriptor}s ──`} className="bg-deep-space">
+                    {isEveryday ? (
+                      <>
+                        {dateStrategies.map((s) => (
+                          <option key={s.id} value={s.id} className="bg-deep-space text-white">
+                            {s.label}
+                          </option>
+                        ))}
+                        <option value="custom" className="bg-deep-space text-white">Custom</option>
+                      </>
+                    ) : DEFAULT_DESCRIPTORS.map((d) => {
                       const isUsed = d.value !== 'custom' && usedDescriptors.includes(d.value)
                       return (
                         <option
@@ -292,7 +310,7 @@ export function WorkspaceTableRow({ image, sku, position, usedDescriptors, isPro
               )}
             </>
           ) : (
-            <span className="text-[10px] text-gray-600 italic">— needs SKU —</span>
+            <span className="text-[10px] text-gray-600 italic">— needs {vocab.sku} —</span>
           )}
         </div>
 

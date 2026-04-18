@@ -6,9 +6,9 @@ import { motion } from 'framer-motion'
 import { useAssetStore } from '@/stores/useAssetStore'
 import { useSubscription } from '@/hooks/useSubscription'
 import { exportAsZip } from '@/lib/export'
-import { generateFilename } from '@/lib/filename'
+import { generateFilename, humanizeFilename } from '@/lib/filename'
 import { buildCsvManifest, downloadCsv, getCsvFilename } from '@/lib/csv'
-import { getPresetById } from '@/lib/platformPresets'
+import { getPresetById, getVocabulary } from '@/lib/platformPresets'
 import { Button } from '@/components/ui/Button'
 import { UpgradeModal } from '@/components/ui/UpgradeModal'
 import { NamingPreviewTable } from '@/components/app/NamingPreviewTable'
@@ -18,10 +18,12 @@ export function ExportControls() {
   const isExportReady = useAssetStore((state) => state.isExportReady)
   const addToast = useAssetStore((state) => state.addToast)
 
-  const activePlatformPreset = useAssetStore((state) => state.activePlatformPreset)
+  const activePlatformPreset = useAssetStore((s) => s.activePlatformPreset)
+  const humanReadable        = useAssetStore((s) => s.humanReadable)
   const { isPro } = useSubscription()
 
   const preset = getPresetById(activePlatformPreset)
+  const vocab   = getVocabulary(preset)
 
   const [isExporting, setIsExporting] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -61,7 +63,10 @@ export function ExportControls() {
       const descriptor = image.descriptor === 'custom'
         ? (image.customDescriptor || '')
         : (image.descriptor || '')
-      const filename = generateFilename(sku, descriptor, image.originalName, preset, positionMap.get(image.id) ?? 1)
+      const raw = generateFilename(sku, descriptor, image.originalName, preset, positionMap.get(image.id) ?? 1)
+      const filename = humanReadable && activePlatformPreset === 'everyday' && raw
+        ? humanizeFilename(sku, descriptor, image.originalName)
+        : raw
 
       const count = filenameMap.get(filename) || 0
       filenameMap.set(filename, count + 1)
@@ -100,7 +105,10 @@ export function ExportControls() {
           const descriptor = image.descriptor === 'custom'
             ? (image.customDescriptor || '')
             : (image.descriptor || '')
-          return generateFilename(sku, descriptor, image.originalName, preset, positionMap.get(image.id) ?? 1)
+          const raw = generateFilename(sku, descriptor, image.originalName, preset, positionMap.get(image.id) ?? 1)
+          return humanReadable && activePlatformPreset === 'everyday' && raw
+            ? humanizeFilename(sku, descriptor, image.originalName)
+            : raw
         },
         (percent) => setProgress(Math.round(percent)),
         manifest,
@@ -158,7 +166,7 @@ export function ExportControls() {
                 ? 'manifest.csv bundled in ZIP'
                 : completeImages > 0
                   ? 'Partial export available'
-                  : 'Assign SKUs and descriptors to export'}
+                  : `Assign ${vocab.sku}s and ${vocab.descriptor.toLowerCase()}s to export`}
             </p>
           </div>
         </div>

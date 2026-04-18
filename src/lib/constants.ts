@@ -50,7 +50,6 @@ export const ITERATION_PRESETS = [
   { value: 'num-2', label: 'Numbers (01, 02, 03)', format: (n: number) => n.toString().padStart(2, '0') },
   { value: 'num-3', label: 'Numbers (001, 002, 003)', format: (n: number) => n.toString().padStart(3, '0') },
   { value: 'num-4', label: 'Numbers (0001, 0002, 0003)', format: (n: number) => n.toString().padStart(4, '0') },
-  { value: 'alpha-upper', label: 'Letters (A, B, C)', format: (n: number) => String.fromCharCode(64 + n) },
   { value: 'alpha-lower', label: 'Letters (a, b, c)', format: (n: number) => String.fromCharCode(96 + n) },
 ] as const
 

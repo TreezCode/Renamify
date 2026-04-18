@@ -3,29 +3,33 @@
 import { useState } from 'react'
 import { Zap } from 'lucide-react'
 import { useAssetStore } from '@/stores/useAssetStore'
-import { sanitizeString } from '@/lib/filename'
+import { sanitizeSkuDisplay } from '@/lib/filename'
+import { getPresetById, getVocabulary } from '@/lib/platformPresets'
 
 export function QuickSKUInput() {
   const [sku, setSku] = useState('')
-  const images = useAssetStore((state) => state.images)
-  const setBulkSku = useAssetStore((state) => state.setBulkSku)
-  const addToast = useAssetStore((state) => state.addToast)
+  const images              = useAssetStore((state) => state.images)
+  const setBulkSku           = useAssetStore((state) => state.setBulkSku)
+  const addToast             = useAssetStore((state) => state.addToast)
+  const activePlatformPreset = useAssetStore((state) => state.activePlatformPreset)
+
+  const vocab = getVocabulary(getPresetById(activePlatformPreset))
 
   const imagesWithoutSku = images.filter((img) => !img.sku)
   const hasImagesWithoutSku = imagesWithoutSku.length > 0
 
   const handleApply = () => {
-    const sanitized = sanitizeString(sku)
+    const sanitized = sanitizeSkuDisplay(sku)
 
     if (!sanitized) {
-      addToast('error', 'Please enter a valid SKU')
+      addToast('error', `Please enter a valid ${vocab.sku}`)
       return
     }
 
     if (hasImagesWithoutSku) {
       const idsToUpdate = imagesWithoutSku.map((img) => img.id)
       setBulkSku(idsToUpdate, sanitized)
-      addToast('success', `SKU "${sanitized}" applied to ${idsToUpdate.length} image(s)`)
+      addToast('success', `${vocab.sku} "${sanitized}" applied to ${idsToUpdate.length} image(s)`)
     }
 
     setSku('')
@@ -62,7 +66,7 @@ export function QuickSKUInput() {
           value={sku}
           onChange={(e) => setSku(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="SKU (e.g., SHOE-123)"
+          placeholder={`${vocab.sku} (e.g., SHOE-123)`}
           className="flex-1 px-3 py-2 rounded-lg 
             bg-white/5 backdrop-blur-sm border border-white/10
             text-white placeholder-gray-400 text-sm

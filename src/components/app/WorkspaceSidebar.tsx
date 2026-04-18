@@ -18,6 +18,7 @@ import {
   X,
 } from 'lucide-react'
 import { useAssetStore } from '@/stores/useAssetStore'
+import { getPresetById, getVocabulary } from '@/lib/platformPresets'
 import { useSubscription } from '@/hooks/useSubscription'
 import { useTemplates } from '@/hooks/useTemplates'
 import { useCreateProject, useUpdateProject } from '@/hooks/useProjects'
@@ -111,6 +112,8 @@ export function WorkspaceSidebar({ user, isCollapsed, onToggleCollapse }: Worksp
   const maxImages = limits.maxImagesPerSession
   const uniqueSkus = new Set(images.filter((img) => img.sku).map((img) => img.sku)).size
   const imagesWithSku = images.filter((img) => img.sku).length
+  const activePlatformPreset = useAssetStore((s) => s.activePlatformPreset)
+  const vocab = getVocabulary(getPresetById(activePlatformPreset))
   const usagePercent = isPro ? 0 : Math.min(100, (imageCount / maxImages) * 100)
 
   const sessionName = currentProject?.name ?? 'Untitled Session'
@@ -384,7 +387,7 @@ export function WorkspaceSidebar({ user, isCollapsed, onToggleCollapse }: Worksp
                   </div>
 
                   <div className="flex justify-between text-xs">
-                    <span className="text-gray-500">Products</span>
+                    <span className="text-gray-500">{vocab.group}s</span>
                     <span className="text-gray-300">{uniqueSkus}</span>
                   </div>
                   <div className="flex justify-between text-xs">

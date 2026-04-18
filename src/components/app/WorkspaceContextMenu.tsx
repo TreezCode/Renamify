@@ -9,6 +9,7 @@ import {
 import { useAssetStore } from '@/stores/useAssetStore'
 import { useSubscription } from '@/hooks/useSubscription'
 import { AssetImage } from '@/types'
+import { getPresetById, getVocabulary } from '@/lib/platformPresets'
 
 interface WorkspaceContextMenuProps {
   x: number
@@ -40,7 +41,10 @@ export function WorkspaceContextMenu({
   const setBulkSku           = useAssetStore((s) => s.setBulkSku)
   const showConfirmDialog    = useAssetStore((s) => s.showConfirmDialog)
   const addToast             = useAssetStore((s) => s.addToast)
+  const activePlatformPreset = useAssetStore((s) => s.activePlatformPreset)
   const { isPro }            = useSubscription()
+
+  const vocab = getVocabulary(getPresetById(activePlatformPreset))
 
   const isSelected  = selectedImageIds.includes(image.id)
   const isBulk      = isSelected && selectedImageIds.length > 1
@@ -90,10 +94,10 @@ export function WorkspaceContextMenu({
   const handleRemoveSku = () => run(() => {
     if (isBulk) {
       setBulkSku(selectedImageIds, '')
-      addToast('success', `SKU removed from ${bulkCount} images`)
+      addToast('success', `${vocab.sku} removed from ${bulkCount} images`)
     } else {
       setImageSku(image.id, '')
-      addToast('success', 'SKU removed')
+      addToast('success', `${vocab.sku} removed`)
     }
   })
 
@@ -141,7 +145,7 @@ export function WorkspaceContextMenu({
         {otherSkus.length > 0 && (
           <div>
             <p className="px-3 pt-1.5 pb-0.5 text-[9px] font-semibold uppercase tracking-wider text-gray-600">
-              {isBulk ? `Move ${bulkCount} selected to group` : 'Move to group'}
+              {isBulk ? `Move ${bulkCount} selected to ${vocab.group}` : `Move to ${vocab.group}`}
             </p>
             {otherSkus.map((s) => (
               <button key={s} className={ITEM} onClick={() => handleAssignSku(s)}>
@@ -158,7 +162,7 @@ export function WorkspaceContextMenu({
         {sku && (
           <button className={ITEM} onClick={handleRemoveSku}>
             <X className="w-3.5 h-3.5 text-gray-500 shrink-0" />
-            <span>{isBulk ? `Remove ${bulkCount} from group` : 'Remove from group'}</span>
+            <span>{isBulk ? `Remove ${bulkCount} from ${vocab.group}` : `Remove from ${vocab.group}`}</span>
           </button>
         )}
 
@@ -168,7 +172,7 @@ export function WorkspaceContextMenu({
         {canAiAnalyze && (
           <button className={ITEM} onClick={handleAi}>
             <Sparkles className="w-3.5 h-3.5 text-treez-purple shrink-0" />
-            <span>AI Suggest descriptor</span>
+            <span>AI Suggest {vocab.descriptor}</span>
           </button>
         )}
 

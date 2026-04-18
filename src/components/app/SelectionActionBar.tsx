@@ -1,20 +1,24 @@
 'use client'
 
-import { useState } from 'react'
-import { X, Trash2, Tag, XCircle, CheckSquare, Sparkles, Loader2 } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { X, Trash2, Tag, XCircle, CheckSquare, Sparkles, Loader2, Hash } from 'lucide-react'
 import { useAssetStore } from '@/stores/useAssetStore'
-import { sanitizeString } from '@/lib/filename'
+import { sanitizeSkuDisplay } from '@/lib/filename'
 import { useSubscription } from '@/hooks/useSubscription'
 import { useAiAnalysis } from '@/hooks/useAiAnalysis'
 import { AiConsentModal } from '@/components/app/AiConsentModal'
+import { getPresetById, getVocabulary } from '@/lib/platformPresets'
+import { getStrategiesForPreset, type StrategyId } from '@/lib/descriptorStrategies'
 
 interface SelectionActionBarProps {
   compact?: boolean
 }
 
 export function SelectionActionBar({ compact = false }: SelectionActionBarProps) {
-  const [showSkuInput, setShowSkuInput] = useState(false)
-  const [newSku, setNewSku] = useState('')
+  const [showSkuInput,    setShowSkuInput]    = useState(false)
+  const [newSku,           setNewSku]           = useState('')
+  const [descriptorOpen,   setDescriptorOpen]   = useState(false)
+  const descriptorRef = useRef<HTMLDivElement>(null)
   
   const images = useAssetStore((state) => state.images)
   const selectedImageIds = useAssetStore((state) => state.selectedImageIds)
@@ -24,11 +28,26 @@ export function SelectionActionBar({ compact = false }: SelectionActionBarProps)
   const setImageSku = useAssetStore((state) => state.setImageSku)
   const setBulkSku = useAssetStore((state) => state.setBulkSku)
   const showConfirmDialog = useAssetStore((state) => state.showConfirmDialog)
-  const addToast = useAssetStore((state) => state.addToast)
+  const addToast               = useAssetStore((state) => state.addToast)
+  const applyDescriptorStrategy = useAssetStore((state) => state.applyDescriptorStrategy)
+  const activePlatformPreset    = useAssetStore((state) => state.activePlatformPreset)
 
   const aiConsentGiven = useAssetStore((state) => state.aiConsentGiven)
   const setAiConsentGiven = useAssetStore((state) => state.setAiConsentGiven)
   const setImageAltText = useAssetStore((state) => state.setImageAltText)
+
+  const preset     = getPresetById(activePlatformPreset)
+  const vocab      = getVocabulary(preset)
+  const strategies = getStrategiesForPreset(activePlatformPreset)
+
+  useEffect(() => {
+    if (!descriptorOpen) return
+    const handler = (e: MouseEvent) => {
+      if (!descriptorRef.current?.contains(e.target as Node)) setDescriptorOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [descriptorOpen])
 
   const { isPro } = useSubscription()
   const { analyze, isAtLimit, remainingRequests } = useAiAnalysis()
@@ -74,20 +93,20 @@ export function SelectionActionBar({ compact = false }: SelectionActionBarProps)
 
   const handleRemoveSku = () => {
     showConfirmDialog({
-      title: 'Remove SKU from selected images?',
-      description: `SKU will be removed from ${count} image(s). You can reassign them later.`,
+      title: `Remove ${vocab.sku} from selected images?`,
+      description: `${vocab.sku} will be removed from ${count} image(s). You can reassign them later.`,
       variant: 'warning',
-      confirmLabel: 'Remove SKU',
+      confirmLabel: `Remove ${vocab.sku}`,
       onConfirm: () => {
         selectedImageIds.forEach((id) => setImageSku(id, ''))
-        addToast('success', `SKU removed from ${count} image(s)`)
+        addToast('success', `${vocab.sku} removed from ${count} image(s)`)
         clearSelection()
       },
     })
   }
 
   const handleAssignSku = (skuValue: string) => {
-    const sanitized = sanitizeString(skuValue)
+    const sanitized = sanitizeSkuDisplay(skuValue)
     
     if (!sanitized) {
       addToast('warning', 'Please enter a valid SKU')
@@ -95,7 +114,7 @@ export function SelectionActionBar({ compact = false }: SelectionActionBarProps)
     }
 
     setBulkSku(selectedImageIds, sanitized)
-    addToast('success', `SKU "${sanitized}" assigned to ${count} image(s)`)
+    addToast('success', `${vocab.sku} "${sanitized}" assigned to ${count} image(s)`)
     setNewSku('')
     setShowSkuInput(false)
     clearSelection()
@@ -131,6 +150,12 @@ export function SelectionActionBar({ compact = false }: SelectionActionBarProps)
     if (generated > 0) addToast('success', `Alt text generated for ${generated} image(s)`)
   }
 
+  const handleApplyDescriptors = (strategyId: StrategyId) => {
+    setDescriptorOpen(false)
+    applyDescriptorStrategy(selectedImageIds, strategyId)
+    addToast('success', `${vocab.descriptor}s applied to ${count} image${count !== 1 ? 's' : ''}`)
+  }
+
   const handleBulkAi = () => {
     if (!aiConsentGiven) {
       setShowBulkConsentModal(true)
@@ -158,7 +183,7 @@ export function SelectionActionBar({ compact = false }: SelectionActionBarProps)
                 <span className="text-xs font-bold text-white">{count}</span>
               </div>
               <span className="text-white font-medium text-sm whitespace-nowrap">
-                {noneHaveSku ? 'Assign SKU' : 'Change SKU'} · {count} selected
+                {noneHaveSku ? vocab.assignSku : vocab.changeSku} · {count} selected
               </span>
             </div>
             <button
@@ -183,7 +208,7 @@ export function SelectionActionBar({ compact = false }: SelectionActionBarProps)
                     text-white text-xs sm:text-sm
                     focus:outline-none focus:ring-2 focus:ring-white/30"
                 >
-                  <option value="" disabled className="bg-deep-space">Existing SKU…</option>
+                  <option value="" disabled className="bg-deep-space">Existing {vocab.sku}…</option>
                   {existingSkus.map((sku) => (
                     <option key={sku} value={sku} className="bg-deep-space">{sku}</option>
                   ))}
@@ -196,7 +221,7 @@ export function SelectionActionBar({ compact = false }: SelectionActionBarProps)
               value={newSku}
               onChange={(e) => setNewSku(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleQuickAssign()}
-              placeholder="New SKU…"
+              placeholder={`New ${vocab.sku}…`}
               autoFocus
               className="flex-1 min-w-0 px-2.5 py-2 rounded-lg
                 bg-white/10 border border-white/20
@@ -254,10 +279,10 @@ export function SelectionActionBar({ compact = false }: SelectionActionBarProps)
                 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white text-xs sm:text-sm
                 transition-colors duration-200
                 min-w-[36px] sm:min-w-0"
-              aria-label={noneHaveSku ? 'Assign SKU' : 'Change SKU'}
+              aria-label={noneHaveSku ? vocab.assignSku : vocab.changeSku}
             >
               <Tag className="w-4 h-4" />
-              <span className="hidden sm:inline">{noneHaveSku ? 'Assign SKU' : 'Change SKU'}</span>
+              <span className="hidden sm:inline">{noneHaveSku ? vocab.assignSku : vocab.changeSku}</span>
             </button>
 
             {allHaveSku && (
@@ -274,6 +299,45 @@ export function SelectionActionBar({ compact = false }: SelectionActionBarProps)
                 <span className="hidden sm:inline">Remove</span>
               </button>
             )}
+
+            {/* Descriptor strategy picker */}
+            <div ref={descriptorRef} className="relative shrink-0">
+              <button
+                onClick={() => setDescriptorOpen((o) => !o)}
+                title={vocab.autoFill}
+                className="inline-flex items-center justify-center gap-1.5
+                  px-2.5 sm:px-3 py-1.5 rounded-md sm:rounded-lg
+                  bg-white/10 hover:bg-white/20 active:bg-white/30 text-white text-xs sm:text-sm
+                  transition-colors duration-200
+                  min-w-[36px] sm:min-w-0"
+                aria-label={vocab.autoFill}
+              >
+                <Hash className="w-4 h-4" />
+                <span className="hidden sm:inline">{vocab.descriptor}s</span>
+              </button>
+
+              {descriptorOpen && (
+                <div className="absolute right-0 top-full mt-1 z-50 min-w-[210px]
+                  bg-[#12121f] border border-white/10 rounded-xl
+                  shadow-2xl shadow-black/60 backdrop-blur-xl overflow-hidden">
+                  <div className="px-3 py-1.5 text-[10px] text-gray-500 border-b border-white/5">
+                    Apply to {count} selected image{count !== 1 ? 's' : ''}
+                  </div>
+                  {strategies.map((strategy) => (
+                    <button
+                      key={strategy.id}
+                      onClick={() => handleApplyDescriptors(strategy.id)}
+                      className="w-full text-left px-3 py-2 text-xs text-gray-300
+                        hover:bg-white/5 hover:text-white transition-colors
+                        flex items-center justify-between gap-3"
+                    >
+                      <span>{strategy.label}</span>
+                      <span className="text-gray-600 font-mono text-[10px]">{strategy.example}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {isPro && eligibleForAi.length > 0 && !isAtLimit && (
               <button

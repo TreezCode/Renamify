@@ -1,4 +1,4 @@
-export type PlatformPresetId = 'generic' | 'amazon' | 'dated' | 'shopify' | 'etsy' | 'woocommerce'
+export type PlatformPresetId = 'generic' | 'amazon' | 'dated' | 'shopify' | 'etsy' | 'woocommerce' | 'everyday'
 
 export interface PlatformPresetFormat {
   sku: string
@@ -8,6 +8,26 @@ export interface PlatformPresetFormat {
   date: string
 }
 
+export interface PresetVocabulary {
+  sku: string
+  descriptor: string
+  group: string
+  changeSku: string
+  assignSku: string
+  noSku: string
+  autoFill: string
+}
+
+const DEFAULT_VOCABULARY: PresetVocabulary = {
+  sku: 'SKU',
+  descriptor: 'Descriptor',
+  group: 'SKU Group',
+  changeSku: 'Change SKU',
+  assignSku: 'Assign SKU',
+  noSku: 'Assign to a SKU',
+  autoFill: 'Auto-fill Descriptors',
+}
+
 export interface PlatformPreset {
   id: PlatformPresetId
   label: string
@@ -15,13 +35,36 @@ export interface PlatformPreset {
   example: string
   proOnly: boolean
   format: (params: PlatformPresetFormat) => string
+  vocabulary?: Partial<PresetVocabulary>
+}
+
+export function getVocabulary(preset: PlatformPreset | null | undefined): PresetVocabulary {
+  return { ...DEFAULT_VOCABULARY, ...(preset?.vocabulary ?? {}) }
 }
 
 export const PLATFORM_PRESETS: PlatformPreset[] = [
   {
+    id: 'everyday',
+    label: 'Everyday Photos',
+    description: 'Collection · date and time',
+    example: 'beach-trip-2024-jul-15-2-43pm.jpg',
+    proOnly: false,
+    vocabulary: {
+      sku: 'Collection',
+      descriptor: 'Date & Time',
+      group: 'Collection',
+      changeSku: 'Change Collection',
+      assignSku: 'Assign Collection',
+      noSku: 'Assign to a Collection',
+      autoFill: 'Fill Date & Time',
+    },
+    format: ({ sku, descriptor, extension }) =>
+      descriptor ? `${sku}-${descriptor}${extension}` : '',
+  },
+  {
     id: 'generic',
     label: 'Generic',
-    description: 'SKU-descriptor (standard)',
+    description: 'SKU · descriptor (standard)',
     example: 'nike-001-front.jpg',
     proOnly: false,
     format: ({ sku, descriptor, extension }) =>
@@ -82,7 +125,7 @@ export const PLATFORM_PRESETS: PlatformPreset[] = [
   },
 ]
 
-export const FREE_PRESET_IDS: PlatformPresetId[] = ['generic', 'amazon', 'dated']
+export const FREE_PRESET_IDS: PlatformPresetId[] = ['everyday', 'generic', 'amazon', 'dated']
 export const PRO_PRESET_IDS: PlatformPresetId[] = ['shopify', 'etsy', 'woocommerce']
 
 export function getPresetById(id: PlatformPresetId): PlatformPreset {
