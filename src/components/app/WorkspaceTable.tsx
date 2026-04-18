@@ -3,14 +3,15 @@
 import { useRef, useMemo, useCallback, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useDroppable } from '@dnd-kit/core'
-import { motion } from 'framer-motion'
-import { Images, ChevronDown } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Images, ChevronDown, Check } from 'lucide-react'
 import { useAssetStore } from '@/stores/useAssetStore'
 import { useSubscription } from '@/hooks/useSubscription'
 import { AssetImage } from '@/types'
 import { WorkspaceGroupHeader } from './WorkspaceGroupHeader'
 import { WorkspaceTableRow } from './WorkspaceTableRow'
 import { WorkspaceContextMenu } from './WorkspaceContextMenu'
+import { SelectionActionBar } from './SelectionActionBar'
 
 type VirtualRow =
   | { kind: 'inbox-header' }
@@ -20,20 +21,49 @@ type VirtualRow =
 const HEADER_H = 48
 const ROW_H    = 44
 
-function InboxHeader({ count, isCollapsed, onToggle }: {
+function InboxHeader({ count, isCollapsed, onToggle, imageIds }: {
   count: number
   isCollapsed: boolean
   onToggle: () => void
+  imageIds: string[]
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: 'remove-sku' })
+  const selectedImageIds  = useAssetStore((s) => s.selectedImageIds)
+  const selectImages      = useAssetStore((s) => s.selectImages)
+  const setLastSelectedId = useAssetStore((s) => s.setLastSelectedId)
+  const allSelected  = imageIds.length > 0 && imageIds.every((id) => selectedImageIds.includes(id))
+  const someSelected = imageIds.some((id) => selectedImageIds.includes(id))
+  const handleSelect = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (allSelected) {
+      selectImages(selectedImageIds.filter((id) => !imageIds.includes(id)))
+    } else {
+      selectImages(Array.from(new Set([...selectedImageIds, ...imageIds])))
+      setLastSelectedId(imageIds[imageIds.length - 1])
+    }
+  }
   return (
     <div
       ref={setNodeRef}
-      className={`flex items-center gap-3 px-3 py-2.5 border-b border-white/8
+      className={`flex items-center gap-2 px-3 py-2.5 border-b border-white/8
         border-l-2 border-l-yellow-500/40
         bg-white/4 transition-all duration-200 group/inbox
         ${isOver ? 'bg-treez-cyan/8 border-l-treez-cyan' : ''}`}
     >
+      {/* Inbox select-all checkbox */}
+      <button
+        onClick={handleSelect}
+        aria-label={allSelected ? 'Deselect all inbox images' : 'Select all inbox images'}
+        className={`w-4 h-4 shrink-0 rounded border transition-all flex items-center justify-center
+          ${allSelected
+            ? 'bg-treez-purple border-treez-purple'
+            : someSelected
+              ? 'bg-treez-purple/40 border-treez-purple/60'
+              : 'border-white/20 hover:border-treez-purple/50 bg-transparent'}`}
+      >
+        {allSelected && <Check className="w-2.5 h-2.5 text-white" />}
+        {someSelected && !allSelected && <div className="w-2 h-0.5 bg-white rounded" />}
+      </button>
       <div className="p-1 rounded bg-yellow-500/15 shrink-0">
         <Images className="w-3.5 h-3.5 text-yellow-400" />
       </div>
@@ -191,23 +221,44 @@ export function WorkspaceTable() {
       className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden flex flex-col"
       style={{ maxHeight: 'calc(100vh - 260px)', minHeight: '200px' }}
     >
-      {/* ── Column headers (outside scroll container — always visible) ── */}
-      <div className="flex-none flex items-center gap-0 pl-4 h-9 bg-white/3 border-b border-white/10
-        text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
-        <div className="w-8 shrink-0" />
-        <div className="w-5 shrink-0" />
-        <div className="w-9 shrink-0" />
-        <div className="flex-1 min-w-0 px-2">File</div>
-        <div className="w-44 shrink-0 px-2">Descriptor</div>
-        <div className="w-44 shrink-0 px-2 hidden md:block">New Name</div>
-        <div className="w-24 shrink-0 px-2 hidden lg:block">SEO</div>
-        <div className="w-10 shrink-0" />
-      </div>
+      {/* ── Column headers / Selection action bar ── */}
+      <AnimatePresence mode="wait" initial={false}>
+        {selectedImageIds.length > 0 ? (
+          <motion.div
+            key="action-bar"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="flex-none bg-treez-purple/20 border-b border-treez-purple/40"
+          >
+            <SelectionActionBar compact />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="col-headers"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="flex-none flex items-center gap-0 pl-4 h-11 bg-white/3 border-b border-white/10
+              text-[10px] font-semibold text-gray-500 uppercase tracking-wider"
+          >
+            <div className="w-8 shrink-0" />
+            <div className="w-9 shrink-0" />
+            <div className="flex-1 min-w-0 px-2">File</div>
+            <div className="w-44 shrink-0 px-2">Descriptor</div>
+            <div className="w-44 shrink-0 px-2 hidden md:block">New Name</div>
+            <div className="w-24 shrink-0 px-2 hidden lg:block">SEO</div>
+            <div className="w-10 shrink-0" />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Virtual scroll container ── */}
       <div
         ref={parentRef}
-        className="flex-1 overflow-auto scrollbar-treez outline-none"
+        className="flex-1 overflow-auto scrollbar-treez outline-none select-none"
         tabIndex={0}
         onKeyDown={handleKeyDown}
       >
@@ -233,6 +284,7 @@ export function WorkspaceTable() {
                     count={inboxImages.length}
                     isCollapsed={inboxCollapsed}
                     onToggle={toggleInboxCollapsed}
+                    imageIds={inboxImages.map((img) => img.id)}
                   />
                 )}
                 {row.kind === 'group-header' && (

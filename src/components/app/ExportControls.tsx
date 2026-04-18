@@ -85,6 +85,13 @@ export function ExportControls() {
     setShowSuccess(false)
 
     try {
+      const uniqueSkus = Array.from(new Set(readyImages.map((img) => img.sku).filter(Boolean))) as string[]
+      const zipName = uniqueSkus.length === 1
+        ? `${uniqueSkus[0]}.zip`
+        : uniqueSkus.length <= 4
+          ? `${uniqueSkus.join('_')}.zip`
+          : `renamerly-export.zip`
+
       const manifest = buildCsvManifest(readyImages, preset)
       await exportAsZip(
         readyImages,
@@ -96,7 +103,8 @@ export function ExportControls() {
           return generateFilename(sku, descriptor, image.originalName, preset, positionMap.get(image.id) ?? 1)
         },
         (percent) => setProgress(Math.round(percent)),
-        manifest
+        manifest,
+        zipName
       )
 
       addToast('success', `${readyImages.length} image(s) exported successfully!`, 4000)

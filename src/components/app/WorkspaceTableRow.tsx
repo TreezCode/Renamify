@@ -2,9 +2,8 @@
 
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
-import { GripVertical, X, AlertCircle, Camera, Check, Sparkles, Loader2 } from 'lucide-react'
+import { X, AlertCircle, Camera, Check, Sparkles, Loader2 } from 'lucide-react'
 import { useDraggable } from '@dnd-kit/core'
-import { CSS } from '@dnd-kit/utilities'
 import { useAssetStore } from '@/stores/useAssetStore'
 import { AssetImage } from '@/types'
 import { DEFAULT_DESCRIPTORS, ITERATION_PRESETS } from '@/lib/constants'
@@ -60,7 +59,10 @@ export function WorkspaceTableRow({ image, sku, position, usedDescriptors, isPro
   const isSelected = selectedImageIds.includes(image.id)
   const canUseAi   = isPro && !!sku && !image.isRaw && !isAtLimit
 
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: image.id })
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: image.id,
+    disabled: !isSelected,
+  })
 
   const resolvedDescriptor =
     image.descriptor === 'custom' ? (image.customDescriptor ?? '') : (image.descriptor ?? '')
@@ -138,16 +140,17 @@ export function WorkspaceTableRow({ image, sku, position, usedDescriptors, isPro
     <>
       <div
         ref={setNodeRef}
-        style={{ transform: CSS.Translate.toString(transform), opacity: isDragging ? 0.3 : 1 }}
-        className={`group flex items-start w-full border-b border-white/5 transition-colors pl-4 cursor-default
-          ${isSelected ? 'bg-treez-purple/10' : 'hover:bg-white/3'}
-          ${isDragging ? 'opacity-30' : ''}`}
+        style={{ opacity: isDragging ? 0.35 : 1 }}
+        className={`group flex items-center w-full border-b border-white/5 transition-colors pl-4
+          ${isSelected ? 'bg-treez-purple/10 cursor-grab active:cursor-grabbing' : 'hover:bg-white/3 cursor-default'}`}
         onClick={(e) => {
           const t = e.target as HTMLElement
           if (t.closest('button, select, input, textarea, a')) return
           onRowClick(image.id, e.shiftKey)
         }}
         onContextMenu={(e) => { e.preventDefault(); onContextMenu(e, image, sku) }}
+        {...listeners}
+        {...attributes}
       >
         {/* Checkbox */}
         <div className="w-8 shrink-0 flex items-center justify-center py-3">
@@ -161,18 +164,6 @@ export function WorkspaceTableRow({ image, sku, position, usedDescriptors, isPro
           >
             {isSelected && <Check className="w-2.5 h-2.5 text-white" />}
           </button>
-        </div>
-
-        {/* Drag handle */}
-        <div className="w-5 shrink-0 flex items-center justify-center py-3">
-          <div
-            {...listeners}
-            {...attributes}
-            className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
-            title="Drag to reassign"
-          >
-            <GripVertical className="w-3.5 h-3.5 text-gray-600" />
-          </div>
         </div>
 
         {/* Thumbnail */}
@@ -256,20 +247,23 @@ export function WorkspaceTableRow({ image, sku, position, usedDescriptors, isPro
                 )}
               </div>
 
-              {/* AI suggestion banner */}
+              {/* AI suggestion banner — same width as the select element */}
               {descSuggestion && (
-                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md
-                  bg-treez-purple/10 border border-treez-purple/20 text-[10px]">
-                  <Sparkles className="w-2.5 h-2.5 text-treez-purple shrink-0" />
-                  <span className="text-treez-purple font-medium">{descSuggestion.descriptor}</span>
-                  <span className="text-gray-500">{Math.round(descSuggestion.confidence * 100)}%</span>
-                  <button
-                    onClick={() => { setImageDescriptor(image.id, descSuggestion.descriptor); setDescSuggestion(null) }}
-                    className="ml-auto px-1 py-0.5 rounded bg-treez-purple/20 text-treez-purple hover:bg-treez-purple/30 font-medium transition-colors"
-                  >Apply</button>
-                  <button onClick={() => setDescSuggestion(null)} className="text-gray-600 hover:text-white transition-colors">
-                    <X className="w-2.5 h-2.5" />
-                  </button>
+                <div className="flex items-center gap-1">
+                  <div className="flex-1 min-w-0 flex items-center gap-1 px-1.5 py-0.5 rounded-md
+                    bg-treez-purple/10 border border-treez-purple/20 text-[10px]">
+                    <Sparkles className="w-2.5 h-2.5 text-treez-purple shrink-0" />
+                    <span className="text-treez-purple font-medium truncate">{descSuggestion.descriptor}</span>
+                    <span className="text-gray-500 shrink-0">{Math.round(descSuggestion.confidence * 100)}%</span>
+                    <button
+                      onClick={() => { setImageDescriptor(image.id, descSuggestion.descriptor); setDescSuggestion(null) }}
+                      className="ml-auto px-1 py-0.5 rounded bg-treez-purple/20 text-treez-purple hover:bg-treez-purple/30 font-medium transition-colors shrink-0"
+                    >Apply</button>
+                    <button onClick={() => setDescSuggestion(null)} className="text-gray-600 hover:text-white transition-colors shrink-0">
+                      <X className="w-2.5 h-2.5" />
+                    </button>
+                  </div>
+                  {canUseAi && <div className="shrink-0 w-4" />}
                 </div>
               )}
 

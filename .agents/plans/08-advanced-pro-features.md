@@ -1,6 +1,6 @@
 # Plan 08: Advanced Pro Features — Bulk Operations & AI Suite
 
-**Status:** � IN PROGRESS — Sprint 1 active  
+**Status:** 🔥 IN PROGRESS — Sprint 3 active  
 **Phase:** 8 of 05-premium-saas-transformation  
 **Created:** April 16, 2026  
 **Prerequisite (08a):** ✅ COMPLETE — Workspace UI Bridge shipped  
@@ -247,31 +247,36 @@ Small stats widget showing:
 
 ## Implementation Order
 
-### Sprint 1 — Foundation (Estimated 1-2 sessions)
+### ✅ Sprint 1 — Foundation (COMPLETE)
 **Goal:** High value, low complexity wins
 
-| Task | File | Complexity |
+| Task | File | Status |
 |---|---|---|
-| Remove multi-select from Pro-only docs | Plan docs only | Trivial |
-| Naming Preview Table | `NamingPreviewTable.tsx` | Medium |
-| CSV Export Manifest | `ExportControls.tsx` + `lib/csv.ts` | Low |
-| SEO Filename Quality Score | `lib/seo.ts` + image card | Low |
+| Remove multi-select from Pro-only docs | Plan docs only | ✅ Done |
+| Naming Preview Table | `NamingPreviewTable.tsx` | ✅ Done |
+| CSV Export Manifest | `ExportControls.tsx` + `lib/csv.ts` | ✅ Done |
+| SEO Filename Quality Score | `lib/seo.ts` + image card | ✅ Done |
 
-### Sprint 2 — Platform Presets (Estimated 1 session)
-| Task | File | Complexity |
+### ✅ Sprint 2 — Platform Presets (COMPLETE)
+| Task | File | Status |
 |---|---|---|
-| Platform preset config | `lib/platformPresets.ts` | Low |
-| Preset selector UI | `AppToolbar.tsx` | Low |
-| Apply preset to filename generation | `lib/filename.ts` | Medium |
+| Platform preset config | `lib/platformPresets.ts` | ✅ Done |
+| Preset selector UI + portal z-index fix | `AppToolbar.tsx` | ✅ Done |
+| Apply preset to filename generation | `lib/filename.ts` + `csv.ts` | ✅ Done |
+| Update all callers (6 components) | `ImageTableRow`, `SKUProductGroup`, `FilenamePreview`, `ImageGridTile`, `ExportControls`, `NamingPreviewTable` | ✅ Done |
+| Quick Assign ↔ Selection Bar animation swap | `page.tsx`, `QuickSKUInput`, `SelectionActionBar` | ✅ Done |
 
-### Sprint 3 — AI Integration (Estimated 2-3 sessions)
-| Task | File | Complexity |
+### ✅ Sprint 3 — AI Integration (COMPLETE)
+| Task | File | Status |
 |---|---|---|
-| Edge Function: `analyze-image` | Supabase Edge Function | Medium |
-| AI descriptor UI (per-image) | Image card component | Medium |
-| SEO alt text generation | Edge Function + UI | Medium |
-| Bulk AI apply | Selection action bar | Medium |
-| Privacy consent modal | `AiConsentModal.tsx` | Low |
+| Edge Function: `analyze-image` | Supabase Edge Function | ✅ Done |
+| AI descriptor UI (per-image, sparkle button + confidence) | `ImageTableRow.tsx` | ✅ Done |
+| SEO alt text generation + editable field + regenerate | `ImageTableRow.tsx` | ✅ Done |
+| Bulk AI apply | `SelectionActionBar.tsx` | ✅ Done |
+| Privacy consent modal | `AiConsentModal.tsx` | ✅ Done |
+| RAW files excluded from AI (canUseAi guard) | `ImageTableRow.tsx` | ✅ Done |
+| Centralized subscription context (prevent N channels) | `SubscriptionContext.tsx` | ✅ Done |
+| Improved edge function error surfacing | `useAiAnalysis.ts` | ✅ Done |
 
 ### Sprint 4 — CSV Import (Estimated 2 sessions)
 | Task | File | Complexity |
@@ -287,6 +292,30 @@ Small stats widget showing:
 | Group-level bulk actions | `SKUProductGroup.tsx` | Medium |
 | Export per-group | `ExportControls.tsx` | Medium |
 | Drag reorder within group | `SKUProductGroup.tsx` | Medium |
+
+### Sprint 6 — UX Polish & Reduced Friction (Estimated 1-2 sessions)
+**Goal:** Reduce action distance — every edit/move/delete should be reachable without hunting or scrolling.
+
+**Selection Action Bar (partially done):**
+| Task | File | Status | Notes |
+|---|---|---|---|
+| Fixed bottom positioning (viewport-relative) | `page.tsx` | ✅ Done | `fixed bottom-4 lg:left-20` |
+| 2-row SKU input mode for mobile | `SelectionActionBar.tsx` | ✅ Done | Header row + input row |
+| SKU dropdown visible on mobile | `SelectionActionBar.tsx` | ✅ Done | `hidden sm:block` removed |
+| `visualViewport` keyboard avoidance | `page.tsx` | ✅ Done | Bar floats above soft keyboard |
+| Alt text editable after AI generation | `ImageTableRow.tsx` | ✅ Done | Textarea + regenerate + clear |
+
+**Remaining UX friction items:**
+| Task | File | Complexity | Priority |
+|---|---|---|---|
+| Keyboard shortcuts: `Esc` = clear selection, `Del` = delete selected | `page.tsx` | Low | High |
+| Per-group action buttons in group header (bulk descriptor, export group) | `SKUProductGroup.tsx` | Medium | High |
+| Right-click context menu on any row (change SKU, delete, generate alt text) | `ImageTableRow.tsx` + new `RowContextMenu.tsx` | Medium | Medium |
+| Inline descriptor badge on hover (clickable chip opens dropdown in-place) | `ImageTableRow.tsx` | Medium | Medium |
+| Label icon buttons on mobile (long-press tooltip or bottom sheet) | `SelectionActionBar.tsx` | Low | Low |
+
+**Design Principles for This Phase:**
+- Every action a user needs should be within 1–2 taps/clicks of where their eyes already are
 
 ---
 

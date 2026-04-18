@@ -8,7 +8,11 @@ import { useSubscription } from '@/hooks/useSubscription'
 import { useAiAnalysis } from '@/hooks/useAiAnalysis'
 import { AiConsentModal } from '@/components/app/AiConsentModal'
 
-export function SelectionActionBar() {
+interface SelectionActionBarProps {
+  compact?: boolean
+}
+
+export function SelectionActionBar({ compact = false }: SelectionActionBarProps) {
   const [showSkuInput, setShowSkuInput] = useState(false)
   const [newSku, setNewSku] = useState('')
   
@@ -137,8 +141,12 @@ export function SelectionActionBar() {
 
   return (
     <>
-    <div className="bg-treez-purple/95 backdrop-blur-xl border border-treez-purple/50
-      rounded-lg sm:rounded-xl p-2 sm:p-4 shadow-lg shadow-treez-purple/20">
+    <div className={compact
+      ? showSkuInput
+        ? 'px-4 py-2 w-full'
+        : 'h-11 flex items-center px-4 w-full'
+      : 'bg-treez-purple/95 backdrop-blur-xl border border-treez-purple/50 rounded-lg sm:rounded-xl p-2 sm:p-4 shadow-lg shadow-treez-purple/20'
+    }>
 
       {showSkuInput ? (
         /* ── SKU INPUT MODE ── two-row layout, works on all screen sizes ── */
@@ -225,10 +233,9 @@ export function SelectionActionBar() {
             {!allSelectedInContext && totalInContext > 1 && (
               <button
                 onClick={() => selectAllInContext(selectionContext || undefined)}
-                className="inline-flex items-center gap-1 px-2 py-1.5 sm:py-1 rounded-md
+                className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md
                   bg-white/10 hover:bg-white/20 active:bg-white/30 text-white text-xs
-                  transition-colors duration-200 border border-white/20
-                  min-h-[36px] sm:min-h-0"
+                  transition-colors duration-200 border border-white/20"
                 aria-label={`Select all ${totalInContext} images`}
               >
                 <CheckSquare className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
@@ -243,10 +250,10 @@ export function SelectionActionBar() {
             <button
               onClick={() => setShowSkuInput(true)}
               className="inline-flex items-center justify-center gap-1.5
-                px-2.5 sm:px-3 py-2 sm:py-1.5 rounded-md sm:rounded-lg
+                px-2.5 sm:px-3 py-1.5 rounded-md sm:rounded-lg
                 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white text-xs sm:text-sm
                 transition-colors duration-200
-                min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0"
+                min-w-[36px] sm:min-w-0"
               aria-label={noneHaveSku ? 'Assign SKU' : 'Change SKU'}
             >
               <Tag className="w-4 h-4" />
@@ -257,10 +264,10 @@ export function SelectionActionBar() {
               <button
                 onClick={handleRemoveSku}
                 className="inline-flex items-center justify-center gap-1.5
-                  px-2.5 sm:px-3 py-2 sm:py-1.5 rounded-md sm:rounded-lg
+                  px-2.5 sm:px-3 py-1.5 rounded-md sm:rounded-lg
                   bg-white/10 hover:bg-white/20 active:bg-white/30 text-white text-xs sm:text-sm
                   transition-colors duration-200
-                  min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0"
+                  min-w-[36px] sm:min-w-0"
                 aria-label="Remove SKU"
               >
                 <XCircle className="w-4 h-4" />
@@ -274,11 +281,11 @@ export function SelectionActionBar() {
                 disabled={bulkAiLoading}
                 title={`Generate alt text for ${eligibleForAi.length} image(s) · ${remainingRequests} AI requests left`}
                 className="inline-flex items-center justify-center gap-1.5
-                  px-2.5 sm:px-3 py-2 sm:py-1.5 rounded-md sm:rounded-lg
+                  px-2.5 sm:px-3 py-1.5 rounded-md sm:rounded-lg
                   bg-treez-purple/30 hover:bg-treez-purple/50 active:bg-treez-purple/60
                   text-white text-xs sm:text-sm
                   transition-colors duration-200
-                  min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0
+                  min-w-[36px] sm:min-w-0
                   disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label={`AI: generate alt text for ${eligibleForAi.length} image(s)`}
               >
@@ -292,10 +299,10 @@ export function SelectionActionBar() {
             <button
               onClick={handleDelete}
               className="inline-flex items-center justify-center gap-1.5
-                px-2.5 sm:px-3 py-2 sm:py-1.5 rounded-md sm:rounded-lg
+                px-2.5 sm:px-3 py-1.5 rounded-md sm:rounded-lg
                 bg-error/20 hover:bg-error/30 active:bg-error/40 text-white text-xs sm:text-sm
                 transition-colors duration-200
-                min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0"
+                min-w-[36px] sm:min-w-0"
               aria-label="Delete selected images"
             >
               <Trash2 className="w-4 h-4" />
@@ -305,10 +312,10 @@ export function SelectionActionBar() {
             <button
               onClick={clearSelection}
               className="inline-flex items-center justify-center gap-1.5
-                px-2.5 sm:px-3 py-2 sm:py-1.5 rounded-md sm:rounded-lg
+                px-2.5 sm:px-3 py-1.5 rounded-md sm:rounded-lg
                 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white text-xs sm:text-sm
                 transition-colors duration-200
-                min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0"
+                min-w-[36px] sm:min-w-0"
               aria-label="Clear selection"
             >
               <X className="w-4 h-4" />

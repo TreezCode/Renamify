@@ -18,10 +18,13 @@ interface WorkspaceGroupHeaderProps {
 }
 
 export function WorkspaceGroupHeader({ sku, images }: WorkspaceGroupHeaderProps) {
-  const collapsedSkus     = useAssetStore((s) => s.collapsedSkus)
-  const toggleSkuCollapse = useAssetStore((s) => s.toggleSkuCollapse)
+  const collapsedSkus      = useAssetStore((s) => s.collapsedSkus)
+  const toggleSkuCollapse  = useAssetStore((s) => s.toggleSkuCollapse)
   const activePlatformPreset = useAssetStore((s) => s.activePlatformPreset)
-  const addToast          = useAssetStore((s) => s.addToast)
+  const addToast           = useAssetStore((s) => s.addToast)
+  const selectedImageIds   = useAssetStore((s) => s.selectedImageIds)
+  const selectImages       = useAssetStore((s) => s.selectImages)
+  const setLastSelectedId  = useAssetStore((s) => s.setLastSelectedId)
 
   const [isExporting,    setIsExporting]    = useState(false)
   const [exportProgress, setExportProgress] = useState(0)
@@ -37,6 +40,20 @@ export function WorkspaceGroupHeader({ sku, images }: WorkspaceGroupHeaderProps)
   const allConfigured   = configuredCount === images.length && images.length > 0
   const someConfigured  = configuredCount > 0
   const progressPercent = images.length > 0 ? (configuredCount / images.length) * 100 : 0
+
+  const groupImageIds     = images.map((img) => img.id)
+  const allGroupSelected  = groupImageIds.length > 0 && groupImageIds.every((id) => selectedImageIds.includes(id))
+  const someGroupSelected = groupImageIds.some((id) => selectedImageIds.includes(id))
+
+  const handleGroupSelect = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (allGroupSelected) {
+      selectImages(selectedImageIds.filter((id) => !groupImageIds.includes(id)))
+    } else {
+      selectImages(Array.from(new Set([...selectedImageIds, ...groupImageIds])))
+      setLastSelectedId(groupImageIds[groupImageIds.length - 1])
+    }
+  }
 
   const { setNodeRef, isOver } = useDroppable({ id: `sku-${sku}` })
 
@@ -59,6 +76,7 @@ export function WorkspaceGroupHeader({ sku, images }: WorkspaceGroupHeaderProps)
         },
         (percent) => setExportProgress(Math.round(percent)),
         manifest,
+        `${sku}.zip`,
       )
       addToast('success', `${sku} exported successfully!`, 4000)
     } catch (err) {
@@ -84,13 +102,28 @@ export function WorkspaceGroupHeader({ sku, images }: WorkspaceGroupHeaderProps)
   return (
     <div
       ref={setNodeRef}
-      className={`flex items-center gap-3 px-3 py-2.5 border-b border-white/8
+      className={`flex items-center gap-2 px-3 py-2.5 border-b border-white/8
         border-l-2 ${borderColor}
         bg-white/4 backdrop-blur-sm
         transition-all duration-200 group/header
         ${isOver ? 'bg-treez-cyan/8 border-l-treez-cyan' : ''}
         ${isOver ? 'shadow-inner shadow-treez-cyan/10' : ''}`}
     >
+      {/* Group select-all checkbox */}
+      <button
+        onClick={handleGroupSelect}
+        aria-label={allGroupSelected ? `Deselect all in ${sku}` : `Select all in ${sku}`}
+        className={`w-4 h-4 shrink-0 rounded border transition-all flex items-center justify-center
+          ${allGroupSelected
+            ? 'bg-treez-purple border-treez-purple'
+            : someGroupSelected
+              ? 'bg-treez-purple/40 border-treez-purple/60'
+              : 'border-white/20 hover:border-treez-purple/50 bg-transparent'}`}
+      >
+        {allGroupSelected && <Check className="w-2.5 h-2.5 text-white" />}
+        {someGroupSelected && !allGroupSelected && <div className="w-2 h-0.5 bg-white rounded" />}
+      </button>
+
       {/* Status icon */}
       <div className={`p-1 rounded shrink-0 ${
         allConfigured ? 'bg-success/15' : someConfigured ? 'bg-yellow-500/15' : 'bg-treez-purple/15'

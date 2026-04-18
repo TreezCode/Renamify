@@ -5,7 +5,8 @@ export async function exportAsZip(
   images: AssetImage[],
   getFilename: (image: AssetImage) => string,
   onProgress?: (percent: number) => void,
-  manifest?: string
+  manifest?: string,
+  zipName?: string
 ): Promise<void> {
   if (!images || images.length === 0) {
     throw new Error('No images to export')
@@ -53,7 +54,7 @@ export async function exportAsZip(
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = 'renamerly-export.zip'
+      link.download = zipName ?? 'renamerly-export.zip'
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
